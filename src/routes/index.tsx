@@ -232,6 +232,7 @@ function Index() {
   const trainingTitle = data?.trainingTitle ?? "";
   const whatsappAdmin = data?.whatsappAdmin ?? "";
   const whatsappTemplate = data?.whatsappMessage ?? "";
+  const debugTraces = data?._debug ?? [];
 
   function buildWhatsAppLink(moduleTitle: string) {
     const rawPhone = (whatsappAdmin || "").replace(/\D/g, "");
@@ -327,6 +328,51 @@ function Index() {
               : "Twa gwo pati, ak demonstrasyon an dirèk sou ekran."}
           </p>
         </div>
+
+        {debugTraces.length > 0 && dynamicModules.length === 0 ? (
+          <details className="mx-auto mt-8 max-w-5xl rounded-2xl border border-amber-500/40 bg-amber-950/40 p-5 text-left backdrop-blur">
+            <summary className="cursor-pointer select-none text-sm font-bold uppercase tracking-wider text-amber-300">
+              🐛 DEBUG: Poukisa modil yo pa parèt? (klike pou w wè)
+            </summary>
+            <ul className="mt-4 space-y-2 font-mono text-xs leading-relaxed text-amber-100/95">
+              {debugTraces.map((line, i) => (
+                <li key={i} className="whitespace-pre-wrap break-all">
+                  · {line}
+                </li>
+              ))}
+              <li className="mt-3 rounded-lg border border-amber-500/40 bg-black/40 p-3 text-[11px] normal-case tracking-normal text-amber-200 not-italic font-sans">
+                <b className="text-amber-300">Si ou wè "[ENV] SUPABASE_URL is NOT defined" :</b> ale
+                nan Vercel Dashboard → Masterclass → <b>Settings → Environment Variables</b>. Tcheke
+                ke ou kreye tou senk (<b>5</b>) variables ak nòm <b>egzak</b>:{" "}
+                <code className="text-amber-200">SUPABASE_URL</code>,{" "}
+                <code className="text-amber-200">SUPABASE_PUBLISHABLE_KEY</code>,{" "}
+                <code className="text-amber-200">SUPABASE_SERVICE_ROLE_KEY</code>,{" "}
+                <code className="text-amber-200">VITE_SUPABASE_URL</code>,{" "}
+                <code className="text-amber-200">VITE_SUPABASE_PUBLISHABLE_KEY</code>. Pa oubliye{" "}
+                <b>twa (3) premye yo SANS</b> "VITE_" — yo sèvi ak sèlman nan servès Nitro.
+                <br />
+                <b className="text-amber-300 mt-1 block">
+                  Si ou wè "[DB modules] ERROR code=MISSING_SUPABASE_ENV" :
+                </b>{" "}
+                ==&gt; menm pwoblèm:{" "}
+                <code className="text-amber-200">SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY</code> pa
+                egziste nan Vercel process.env.
+                <br />
+                <b className="text-amber-300 mt-1 block">
+                  Si ou wè relation "modules" does not exist :
+                </b>{" "}
+                ou bezwen kouri migrasyon SQL la nan Supabase SQL Editor pou kreye tab modules,
+                admin_settings, enskripsyon, etc.
+                <br />
+                <b className="text-amber-300 mt-1 block">
+                  Si ou wè "[DB modules] OK rows=0":
+                </b>{" "}
+                DB konekte byen men tab "modules" a vide. Ale nan paj Admin nan fòm "Ajoute Modil"
+                pou w ajoute, oubyen Insèman anndan Supabase Table Editor → <b>modules</b>.
+              </li>
+            </ul>
+          </details>
+        ) : null}
 
         {dynamicModules.length > 0 ? (
           <div

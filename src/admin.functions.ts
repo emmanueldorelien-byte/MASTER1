@@ -92,6 +92,7 @@ export type LiveDataResponse = {
   whatsappMessage: string | null;
   resourceGuideUrl: string | null;
   resourceCodeUrl: string | null;
+  _debug?: string[];
 };
 
 const settingSchema = z.object({
@@ -223,17 +224,32 @@ export const getLiveData = createServerFn({ method: "GET" }).handler(
       whatsappMessage: null,
       resourceGuideUrl: null,
       resourceCodeUrl: null,
+      _debug: [],
     };
+    const debug: string[] = [];
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const SUPABASE_URL = process.env["SUPABASE_URL"];
+      const SUPABASE_SERVICE_ROLE_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+      if (!SUPABASE_URL) debug.push("[ENV] SUPABASE_URL is NOT defined in process.env");
+      if (!SUPABASE_SERVICE_ROLE_KEY)
+        debug.push("[ENV] SUPABASE_SERVICE_ROLE_KEY is NOT defined in process.env");
+      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
+        debug.push(
+          `[ENV] SUPABASE_URL=${SUPABASE_URL.slice(0, 20)}... / service_role key prefix: ${SUPABASE_SERVICE_ROLE_KEY.slice(0, 10)}...`,
+        );
 
       const { data: settings, error: settingsError } = await supabaseAdmin
         .from("admin_settings")
         .select("key, value");
       if (settingsError) {
+        debug.push(
+          `[DB admin_settings] ERROR code=${settingsError.code} message=${settingsError.message} hint=${settingsError.hint ?? ""} details=${settingsError.details ?? ""}`,
+        );
         console.warn("[getLiveData] admin_settings failed:", settingsError.message);
-        return FALLBACK;
+        return { ...FALLBACK, _debug: debug };
       }
+      debug.push(`[DB admin_settings] OK rows=${settings?.length ?? 0}`);
 
       const { data: modules, error: modulesError } = await supabaseAdmin
         .from("modules")
@@ -242,9 +258,13 @@ export const getLiveData = createServerFn({ method: "GET" }).handler(
         )
         .order("module_date", { ascending: true });
       if (modulesError) {
+        debug.push(
+          `[DB modules] ERROR code=${modulesError.code} message=${modulesError.message} hint=${modulesError.hint ?? ""} details=${modulesError.details ?? ""}`,
+        );
         console.warn("[getLiveData] modules failed:", modulesError.message);
-        return { ...FALLBACK };
+        return { ...FALLBACK, _debug: debug };
       }
+      debug.push(`[DB modules] OK rows=${modules?.length ?? 0}`);
 
       const map = new Map<string, string>();
       for (const s of settings ?? []) map.set(s.key, s.value);
@@ -262,13 +282,17 @@ export const getLiveData = createServerFn({ method: "GET" }).handler(
         whatsappMessage: map.get("whatsapp_message") ?? null,
         resourceGuideUrl: map.get("resource_guide_url") ?? null,
         resourceCodeUrl: map.get("resource_code_url") ?? null,
+        _debug: debug,
       };
     } catch (err: any) {
+      debug.push(
+        `[EXCEPTION] ${err?.name ?? "Error"}: ${err?.message ?? String(err)}. Stack-first: ${(err?.stack ?? "").split("\n")[0] ?? ""}`,
+      );
       console.warn(
         "[getLiveData] Supabase not available (env vars missing?). Returning fallback.",
         err?.message ?? err,
       );
-      return FALLBACK;
+      return { ...FALLBACK, _debug: debug };
     }
   },
 );
