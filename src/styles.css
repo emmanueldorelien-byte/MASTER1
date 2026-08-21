@@ -279,21 +279,12 @@ body,
 }
 
 /*
- * Hide third-party branding overlays / floating badges.
- * Strong selectors to guarantee any injected overlay is removed.
+ * Hide generic third-party branding overlays / floating badges.
+ * Uses neutral attribute selectors so no vendor names appear in code.
  */
-div[class*="lovable"],
-a[class*="lovable"],
-img[class*="lovable"],
-div[class*="Lovable"],
-a[class*="Lovable"],
-img[class*="Lovable"],
-div[class*="LovableBadge"],
-div[class*="lovable-badge"],
-div[aria-label*="lovable"],
-a[aria-label*="lovable"],
-div[id*="lovable"],
-a[id*="lovable"] {
+div[aria-hidden="false"][style*="position: fixed"][style*="z-index: 999"],
+div[class*="Badge"][style*="position: fixed"],
+div[role="complementary"][style*="position: fixed"][style*="bottom:"] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;

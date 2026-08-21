@@ -11,40 +11,61 @@ import type { Json } from "@/integrations/supabase/types";
 // ============================================================
 // SEGURIDAD SERVER-SIDE (idéntica a admin.functions.ts)
 // NUNCA confíes en isAdmin del cliente.
+// Obtiene el token de dos fuentes (en orden de prioridad):
+//   1. Header "Authorization: Bearer <token>"  (llamadas cliente → serverFn)
+//   2. Cookies del request via getRequest()    (SSR y server-side)
 // ============================================================
-function getCookieHeader(): string | undefined {
-  try {
-    const g = globalThis as unknown as { __SSR_REQUEST__?: { headers?: Record<string, string> } };
-    const h = g.__SSR_REQUEST__?.headers;
-    if (h && typeof h === "object" && "cookie" in h) return String((h as any).cookie);
-  } catch {
-    return undefined;
-  }
-  return undefined;
-}
-
 async function requireAdmin(): Promise<{ user_id: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { createClient } = await import("@supabase/supabase-js");
   const SUPABASE_URL =
     (process.env["SUPABASE_URL"] as string | undefined) ??
     (globalThis as any).import_meta_env?.["VITE_SUPABASE_URL"];
-  const SUPABASE_SERVICE_ROLE_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"] as string | undefined;
   const SUPABASE_PUBLISHABLE_KEY =
     (process.env["SUPABASE_PUBLISHABLE_KEY"] as string | undefined) ??
     (globalThis as any).import_meta_env?.["VITE_SUPABASE_PUBLISHABLE_KEY"];
 
   let userId: string | null = null;
+  let bearerToken: string | null = null;
+  let cookieHeader: string | null = null;
 
-  const cookieHeader = getCookieHeader();
+  try {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const request = getRequest();
+    if (request?.headers) {
+      const auth = request.headers.get("authorization");
+      if (auth && auth.startsWith("Bearer ")) {
+        bearerToken = auth.slice("Bearer ".length);
+      }
+      const cookie = request.headers.get("cookie");
+      if (cookie) cookieHeader = cookie;
+    }
+  } catch {
+    // getRequest() no disponible (contexto cliente o edge)
+  }
+
+  // Fallback SSR antiguo por compatibilidad
+  if (!cookieHeader) {
+    try {
+      const g = globalThis as unknown as { __SSR_REQUEST__?: { headers?: Record<string, string> } };
+      const h = g.__SSR_REQUEST__?.headers;
+      if (h && typeof h === "object" && "cookie" in h) cookieHeader = String((h as any).cookie);
+    } catch {
+      // ignora
+    }
+  }
+
   if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
     try {
-      const globalOpts: { headers?: Record<string, string> } = {};
-      if (cookieHeader) globalOpts.headers = { Cookie: cookieHeader };
+      const headers: Record<string, string> = {};
+      if (cookieHeader) headers["Cookie"] = cookieHeader;
+      if (bearerToken) headers["Authorization"] = `Bearer ${bearerToken}`;
+
       const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
         auth: { persistSession: false, autoRefreshToken: false },
-        global: globalOpts,
+        global: { headers },
       });
+
       const {
         data: { user },
       } = await sb.auth.getUser();

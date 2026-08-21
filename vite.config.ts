@@ -1,25 +1,26 @@
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { defineConfig } from "vite";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import viteReact from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const polyfillPath = path.resolve(__dirname, "src/polyfills/async_hooks.js");
 
-const isVercel = Boolean(process.env["VERCEL"]);
-
 export default defineConfig({
-  vite: {
-    resolve: {
-      alias: [
-        { find: /^node:async_hooks$/, replacement: polyfillPath },
-        { find: /^async_hooks$/, replacement: polyfillPath },
-      ],
-    },
+  resolve: {
+    alias: [
+      { find: /^node:async_hooks$/, replacement: polyfillPath },
+      { find: /^async_hooks$/, replacement: polyfillPath },
+    ],
+    tsconfigPaths: true,
   },
-  tanstackStart: {
-    server: { entry: "server" },
-  },
-  nitro: {
-    preset: isVercel ? "vercel" : "node",
-  },
+  plugins: [
+    tailwindcss(),
+    tanstackStart({
+      server: { entry: "server" },
+    }),
+    viteReact(),
+  ],
 });
