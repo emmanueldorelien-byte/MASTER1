@@ -73,7 +73,7 @@ function AttendancePage() {
             <KeyRound className="size-3.5" /> Apre Chak Sesyon
           </span>
           <h1 className="mt-6 font-sans text-3xl font-black leading-[1.15] sm:text-5xl">
-            Make <span className="text-gradient-neon">asistans w</span>
+            Make <span className="text-gradient-neon">asistans ou</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
             <b>Chak modil gen pwòp sètifika li.</b> Pou jwenn sètifika ou, ou dwe make asistans pou

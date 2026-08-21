@@ -216,6 +216,16 @@ function Index() {
     queryKey: ["home-data"],
     queryFn: async () => getLiveDataFn(),
     staleTime: 60_000,
+    throwOnError: false,
+    retry: (failures, err) => {
+      const msg = err instanceof Error ? err.message : String(err ?? "");
+      const skip =
+        /MISSING_SUPABASE_ENV|Missing Supabase environment|does not exist|permission denied|relation/i.test(
+          msg,
+        );
+      if (skip) return false;
+      return failures < 2;
+    },
   });
 
   const dynamicModules = data?.modules ?? [];

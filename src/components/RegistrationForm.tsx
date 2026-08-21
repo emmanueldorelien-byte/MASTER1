@@ -75,6 +75,8 @@ export function useSpotsLeft() {
           /function.*does not exist/i.test(msg) ||
           /permission denied/i.test(msg) ||
           /relation.*does not exist/i.test(msg) ||
+          /MISSING_SUPABASE_ENV/i.test(msg) ||
+          /Missing Supabase environment/i.test(msg) ||
           /ERR_ABORTED/i.test(msg);
         if (isMissingDbSetup) {
           console.warn(
@@ -88,12 +90,15 @@ export function useSpotsLeft() {
       }
     },
     staleTime: 15_000,
+    throwOnError: false,
     retry: (failures, err) => {
       const msg = err instanceof Error ? err.message : String(err ?? "");
       const isMissingDbSetup =
         /function.*does not exist/i.test(msg) ||
         /permission denied/i.test(msg) ||
-        /relation.*does not exist/i.test(msg);
+        /relation.*does not exist/i.test(msg) ||
+        /MISSING_SUPABASE_ENV/i.test(msg) ||
+        /Missing Supabase environment/i.test(msg);
       if (isMissingDbSetup && failures >= 1) return false;
       return failures < 2;
     },
@@ -108,6 +113,16 @@ export function SpotsCounter() {
     queryKey: ["public-settings"],
     queryFn: async () => getLiveDataFn(),
     staleTime: 60_000,
+    throwOnError: false,
+    retry: (failures, err) => {
+      const msg = err instanceof Error ? err.message : String(err ?? "");
+      const skip =
+        /MISSING_SUPABASE_ENV|Missing Supabase environment|does not exist|permission denied|relation/i.test(
+          msg,
+        );
+      if (skip) return false;
+      return failures < 2;
+    },
   });
 
   const totalSpots = liveData?.totalSpots ?? FALLBACK_TOTAL_SPOTS;

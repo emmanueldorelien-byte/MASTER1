@@ -32,6 +32,63 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+type DbStubError = { message: string; code: string; hint: string; details: string };
+
+function makeStubError(message: string): { data: null; error: DbStubError } {
+  return {
+    data: null,
+    error: {
+      message,
+      code: "MISSING_SUPABASE_ENV",
+      hint: "Configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY as environment variables.",
+      details: "",
+    },
+  };
+}
+
+function makeStubChain(message: string, tableName?: string): any {
+  const notAvailable = (): any => Promise.resolve(makeStubError(message));
+  return new Proxy(
+    {
+      select: () => {
+        const next: any = makeStubChain(message, tableName);
+        next.order = () => notAvailable();
+        next.eq = () => notAvailable();
+        next.maybeSingle = notAvailable;
+        next.single = notAvailable;
+        next.then = (onFulfilled: any, onRejected: any) =>
+          Promise.resolve(makeStubError(message)).then(onFulfilled, onRejected);
+        return next;
+      },
+      from: (_: string) => makeStubChain(message, _),
+      insert: () => notAvailable(),
+      upsert: () => notAvailable(),
+      update: () => {
+        const next: any = makeStubChain(message, tableName);
+        next.eq = () => notAvailable();
+        next.neq = () => notAvailable();
+        return next;
+      },
+      delete: () => {
+        const next: any = makeStubChain(message, tableName);
+        next.eq = () => notAvailable();
+        return next;
+      },
+      rpc: () => notAvailable(),
+    },
+    {
+      get(target, prop, receiver) {
+        if (prop in target) return Reflect.get(target, prop, receiver);
+        return () => Promise.resolve(makeStubError(message));
+      },
+    },
+  );
+}
+
+function createStubAdminClient(message: string) {
+  return makeStubChain(message) as ReturnType<typeof createClient<Database>>;
+}
+
 function createSupabaseAdminClient() {
   const SUPABASE_URL = process.env["SUPABASE_URL"];
   const SUPABASE_SERVICE_ROLE_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"];
@@ -42,8 +99,8 @@ function createSupabaseAdminClient() {
       ...(!SUPABASE_SERVICE_ROLE_KEY ? ["SUPABASE_SERVICE_ROLE_KEY"] : []),
     ];
     const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Please configure your Supabase connection.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
+    console.error(`[Supabase Admin] ${message} — Returning stub client (NO-OP).`);
+    return createStubAdminClient(message);
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {

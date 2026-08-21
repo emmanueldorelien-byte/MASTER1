@@ -212,35 +212,64 @@ export const getAdminData = createServerFn({ method: "GET" }).handler(
 
 export const getLiveData = createServerFn({ method: "GET" }).handler(
   async (): Promise<LiveDataResponse> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: settings, error: settingsError } = await supabaseAdmin
-      .from("admin_settings")
-      .select("key, value");
-    if (settingsError) throw settingsError;
-
-    const { data: modules, error: modulesError } = await supabaseAdmin
-      .from("modules")
-      .select(
-        "id, title, description, module_date, is_paid, price, payment_methods, created_at, updated_at",
-      )
-      .order("module_date", { ascending: true });
-    if (modulesError) throw modulesError;
-
-    const map = new Map<string, string>();
-    for (const s of settings ?? []) map.set(s.key, s.value);
-
-    return {
-      youtubeLink: map.get("youtube_link") ?? null,
-      modules: (modules ?? []) as ModuleRow[],
-      totalSpots: map.has("total_spots") ? parseInt(map.get("total_spots") as string, 10) : 200,
-      certificateEmissionDate: map.get("certificate_emission_date") ?? null,
-      eventDate: map.get("event_date") ?? null,
-      trainingTitle: map.get("training_title") ?? null,
-      whatsappAdmin: map.get("whatsapp_admin") ?? null,
-      whatsappMessage: map.get("whatsapp_message") ?? null,
-      resourceGuideUrl: map.get("resource_guide_url") ?? null,
-      resourceCodeUrl: map.get("resource_code_url") ?? null,
+    const FALLBACK: LiveDataResponse = {
+      youtubeLink: null,
+      modules: [],
+      totalSpots: 200,
+      certificateEmissionDate: null,
+      eventDate: null,
+      trainingTitle: null,
+      whatsappAdmin: null,
+      whatsappMessage: null,
+      resourceGuideUrl: null,
+      resourceCodeUrl: null,
     };
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+      const { data: settings, error: settingsError } = await supabaseAdmin
+        .from("admin_settings")
+        .select("key, value");
+      if (settingsError) {
+        console.warn("[getLiveData] admin_settings failed:", settingsError.message);
+        return FALLBACK;
+      }
+
+      const { data: modules, error: modulesError } = await supabaseAdmin
+        .from("modules")
+        .select(
+          "id, title, description, module_date, is_paid, price, payment_methods, created_at, updated_at",
+        )
+        .order("module_date", { ascending: true });
+      if (modulesError) {
+        console.warn("[getLiveData] modules failed:", modulesError.message);
+        return { ...FALLBACK };
+      }
+
+      const map = new Map<string, string>();
+      for (const s of settings ?? []) map.set(s.key, s.value);
+
+      return {
+        youtubeLink: map.get("youtube_link") ?? null,
+        modules: (modules ?? []) as ModuleRow[],
+        totalSpots: map.has("total_spots")
+          ? parseInt(map.get("total_spots") as string, 10) || 200
+          : 200,
+        certificateEmissionDate: map.get("certificate_emission_date") ?? null,
+        eventDate: map.get("event_date") ?? null,
+        trainingTitle: map.get("training_title") ?? null,
+        whatsappAdmin: map.get("whatsapp_admin") ?? null,
+        whatsappMessage: map.get("whatsapp_message") ?? null,
+        resourceGuideUrl: map.get("resource_guide_url") ?? null,
+        resourceCodeUrl: map.get("resource_code_url") ?? null,
+      };
+    } catch (err: any) {
+      console.warn(
+        "[getLiveData] Supabase not available (env vars missing?). Returning fallback.",
+        err?.message ?? err,
+      );
+      return FALLBACK;
+    }
   },
 );
 

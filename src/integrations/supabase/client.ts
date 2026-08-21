@@ -29,21 +29,85 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+type DbStubError = { message: string; code: string; hint: string; details: string };
+
+function makeStubError(message: string): { data: null; error: DbStubError } {
+  return {
+    data: null,
+    error: {
+      message,
+      code: "MISSING_SUPABASE_ENV",
+      hint: "Configure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY as environment variables.",
+      details: "",
+    },
+  };
+}
+
+function makeStubChain(message: string, tableName?: string): any {
+  const notAvailable = (): any => Promise.resolve(makeStubError(message));
+  return new Proxy(
+    {
+      select: () => {
+        const next: any = makeStubChain(message, tableName);
+        next.order = () => notAvailable();
+        next.eq = () => notAvailable();
+        next.neq = () => notAvailable();
+        next.maybeSingle = notAvailable;
+        next.single = notAvailable;
+        next.then = (onFulfilled: any, onRejected: any) =>
+          Promise.resolve(makeStubError(message)).then(onFulfilled, onRejected);
+        return next;
+      },
+      from: (_: string) => makeStubChain(message, _),
+      insert: () => notAvailable(),
+      upsert: () => notAvailable(),
+      update: () => {
+        const next: any = makeStubChain(message, tableName);
+        next.eq = () => notAvailable();
+        next.neq = () => notAvailable();
+        return next;
+      },
+      delete: () => {
+        const next: any = makeStubChain(message, tableName);
+        next.eq = () => notAvailable();
+        return next;
+      },
+      rpc: () => notAvailable(),
+    },
+    {
+      get(target, prop, receiver) {
+        if (prop === "auth") {
+          return {
+            getUser: () => Promise.resolve({ data: { user: null }, error: makeStubError(message).error }),
+            getSession: () => Promise.resolve({ data: { session: null }, error: makeStubError(message).error }),
+            signInWithPassword: () => Promise.resolve({ data: { user: null, session: null }, error: makeStubError(message).error }),
+            signOut: () => Promise.resolve({ error: makeStubError(message).error }),
+          };
+        }
+        if (prop in target) return Reflect.get(target, prop, receiver);
+        return () => Promise.resolve(makeStubError(message));
+      },
+    },
+  );
+}
+
+function createStubClient(message: string) {
+  return makeStubChain(message) as ReturnType<typeof createClient<Database>>;
+}
+
 function createSupabaseClient() {
-  // Use import.meta.env for client-side (Vite build-time replacement)
-  // Fall back to process.env for SSR (server-side rendering)
   const SUPABASE_URL = import.meta.env["VITE_SUPABASE_URL"] || process.env["SUPABASE_URL"];
   const SUPABASE_PUBLISHABLE_KEY =
     import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || process.env["SUPABASE_PUBLISHABLE_KEY"];
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const missing = [
-      ...(!SUPABASE_URL ? ["SUPABASE_URL"] : []),
-      ...(!SUPABASE_PUBLISHABLE_KEY ? ["SUPABASE_PUBLISHABLE_KEY"] : []),
+      ...(!SUPABASE_URL ? ["VITE_SUPABASE_URL / SUPABASE_URL"] : []),
+      ...(!SUPABASE_PUBLISHABLE_KEY ? ["VITE_SUPABASE_PUBLISHABLE_KEY / SUPABASE_PUBLISHABLE_KEY"] : []),
     ];
     const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Please configure your Supabase connection.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
+    console.error(`[Supabase Client] ${message} — Returning stub client (NO-OP).`);
+    return createStubClient(message);
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
