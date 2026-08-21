@@ -1,0 +1,50 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@theme",
+      "description": "Tailwind CSS v4 — define/override CSS custom properties (theme tokens) such as colors, spacing, radius, fonts, shadows, and animations. Use `@theme inline { ... }` to in-place override without wrapping variables.",
+      "references": [
+        {
+          "name": "Tailwind v4 @theme docs",
+          "url": "https://tailwindcss.com/docs/theme"
+        }
+      ]
+    },
+    {
+      "name": "@utility",
+      "description": "Tailwind CSS v4 — registers a new utility class directly in CSS. The selector can use nesting (`&:hover`, `&[data-foo]`) and references any CSS property.",
+      "references": [
+        {
+          "name": "Tailwind v4 @utility docs",
+          "url": "https://tailwindcss.com/docs/adding-custom-styles#using-css-and-custom-utilities"
+        }
+      ]
+    },
+    {
+      "name": "@custom-variant",
+      "description": "Tailwind CSS v4 — defines a custom variant selector (e.g. `@custom-variant dark (&:is(.dark *));`) which can then be composed like `dark:bg-slate-900`.",
+      "references": [
+        {
+          "name": "Tailwind v4 @custom-variant docs",
+          "url": "https://tailwindcss.com/docs/customizing-variants#custom-variants"
+        }
+      ]
+    },
+    {
+      "name": "@source",
+      "description": "Tailwind CSS v4 — tells the Vite/PostCSS plugin where to scan for class names (content sources). Replaces the legacy `content` config key.",
+      "references": [
+        {
+          "name": "Tailwind v4 @source docs",
+          "url": "https://tailwindcss.com/docs/content-configuration"
+        }
+      ]
+    },
+    {
+      "name": "@import",
+      "description": "Standard CSS @import; in Tailwind v4 used as `@import \"tailwindcss\";` to bootstrap the framework, and `@import \"tailwindcss/utilities\";` for layer-specific imports."
+    }
+  ],
+  "properties": []
+}

@@ -1,0 +1,322 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system — "Masterclass AI" futuristic dark theme.
+ * All colors in oklch, exposed as semantic tokens.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-neon: var(--neon);
+  --color-neon-foreground: var(--neon-foreground);
+  --color-violet: var(--violet);
+  --color-gold: var(--gold);
+  --color-surface: var(--surface);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-display: "Orbitron", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-serif: "Cinzel", ui-serif, Georgia, serif;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-pulse-glow: pulse-glow 3s ease-in-out infinite;
+  --animate-sheen: sheen 3.5s linear infinite;
+}
+
+:root {
+  color-scheme: dark;
+  forced-color-adjust: none;
+  -ms-high-contrast-adjust: none;
+
+  --radius: 0.875rem;
+  --background: oklch(0.11 0.06 288);
+  --foreground: oklch(0.98 0.008 260);
+  --surface: oklch(0.17 0.065 288);
+  --card: oklch(0.18 0.06 288 / 65%);
+  --card-foreground: oklch(0.98 0.008 260);
+  --popover: oklch(0.16 0.06 288);
+  --popover-foreground: oklch(0.98 0.008 260);
+  --primary: oklch(0.68 0.19 305);
+  --primary-foreground: oklch(0.12 0.05 290);
+  --secondary: oklch(0.24 0.07 290);
+  --secondary-foreground: oklch(0.98 0.008 260);
+  --muted: oklch(0.22 0.055 290);
+  --muted-foreground: oklch(0.92 0.022 265);
+  --accent: oklch(0.82 0.15 195);
+  --accent-foreground: oklch(0.12 0.05 290);
+  --destructive: oklch(0.62 0.22 20);
+  --destructive-foreground: oklch(0.98 0.008 260);
+  --border: oklch(0.58 0.11 295 / 28%);
+  --input: oklch(0.26 0.06 290 / 70%);
+  --ring: oklch(0.82 0.15 195);
+  --neon: oklch(0.85 0.15 194);
+  --neon-foreground: oklch(0.12 0.05 290);
+  --violet: oklch(0.66 0.22 300);
+  --gold: oklch(0.83 0.14 88);
+  --chart-1: oklch(0.82 0.15 195);
+  --chart-2: oklch(0.66 0.22 300);
+  --chart-3: oklch(0.83 0.14 88);
+  --chart-4: oklch(0.7 0.18 340);
+  --chart-5: oklch(0.75 0.16 150);
+  --sidebar: oklch(0.15 0.06 288);
+  --sidebar-foreground: oklch(0.98 0.008 260);
+  --sidebar-primary: oklch(0.68 0.19 305);
+  --sidebar-primary-foreground: oklch(0.12 0.05 290);
+  --sidebar-accent: oklch(0.24 0.07 290);
+  --sidebar-accent-foreground: oklch(0.98 0.008 260);
+  --sidebar-border: oklch(0.58 0.11 295 / 28%);
+  --sidebar-ring: oklch(0.82 0.15 195);
+
+  --gradient-neon: linear-gradient(100deg, var(--neon), var(--violet));
+  --gradient-surface: linear-gradient(
+    160deg,
+    oklch(0.22 0.07 292 / 85%),
+    oklch(0.13 0.055 288 / 88%)
+  );
+  --glow-neon: 0 0 0 1px oklch(0.85 0.15 194 / 35%), 0 0 28px oklch(0.85 0.15 194 / 28%);
+  --glow-violet: 0 0 40px oklch(0.66 0.22 300 / 40%);
+  --shadow-panel: 0 24px 60px -24px oklch(0.08 0.04 290 / 90%);
+}
+
+.dark {
+  color-scheme: dark;
+  forced-color-adjust: none;
+  -ms-high-contrast-adjust: none;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes sheen {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@utility text-gradient-neon {
+  background-image: var(--gradient-neon);
+  background-clip: text;
+  color: transparent;
+}
+
+@utility glow-title {
+  text-shadow:
+    0 0 18px oklch(0.85 0.15 194 / 45%),
+    0 0 60px oklch(0.66 0.22 300 / 45%);
+}
+
+@utility glass {
+  background-image: linear-gradient(
+    160deg,
+    oklch(0.26 0.075 292 / 96%),
+    oklch(0.17 0.06 288 / 98%)
+  );
+  border: 1px solid oklch(0.68 0.12 295 / 45%);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
+  backdrop-filter: blur(16px) saturate(125%);
+  box-shadow:
+    0 24px 60px -24px oklch(0.08 0.04 290 / 90%),
+    0 0 0 1px oklch(0.85 0.15 194 / 14%) inset;
+}
+
+@utility glass-hover {
+  transition:
+    transform 0.35s ease,
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+  &:hover {
+    transform: translateY(-6px);
+    border-color: oklch(0.85 0.15 194 / 55%);
+    box-shadow: var(--shadow-panel), var(--glow-neon);
+  }
+}
+
+@layer utilities {
+  .grid-backdrop {
+    background-image:
+      linear-gradient(oklch(0.85 0.15 194 / 7%) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.85 0.15 194 / 7%) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+}
+
+@utility reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  &[data-visible="true"] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark !important;
+    forced-color-adjust: none;
+    -ms-high-contrast-adjust: none;
+    scroll-behavior: smooth;
+  }
+
+  * {
+    border-color: var(--color-border);
+    forced-color-adjust: none;
+  }
+
+  body {
+    background-color: var(--color-background);
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, oklch(0.35 0.14 300 / 22%), transparent 60%),
+      radial-gradient(900px 500px at 100% 10%, oklch(0.4 0.18 195 / 18%), transparent 55%);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    font-weight: 500;
+    line-height: 1.6;
+    letter-spacing: 0.005em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    line-height: 1.2;
+  }
+
+  p {
+    line-height: 1.65;
+  }
+
+  ::selection {
+    background: oklch(0.85 0.15 194 / 30%);
+  }
+}
+
+/* Anti-color-inversion: bloquea que Dark Reader / auto-dark-mode
+ * invierta el tema oscuro nativo a uno pálido/blanco.
+ */
+html,
+body,
+main,
+section,
+header,
+footer,
+aside,
+nav,
+[class*="glass"] {
+  color-scheme: dark !important;
+}
+
+/* Asegura que los fondos no sean transparentes cuando DR intente "corregirlos" */
+body,
+.bg-background {
+  background-color: var(--color-background) !important;
+}
+
+/*
+ * Hide third-party branding overlays / floating badges.
+ * Strong selectors to guarantee any injected overlay is removed.
+ */
+div[class*="lovable"],
+a[class*="lovable"],
+img[class*="lovable"],
+div[class*="Lovable"],
+a[class*="Lovable"],
+img[class*="Lovable"],
+div[class*="LovableBadge"],
+div[class*="lovable-badge"],
+div[aria-label*="lovable"],
+a[aria-label*="lovable"],
+div[id*="lovable"],
+a[id*="lovable"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  transform: scale(0) !important;
+}
+
+/* ============================================================
+ * Sonner Toaster: oculta iconos por defecto (corazón success,
+ * barra vertical/loading, etc.).
+ * No hay iconos custom declarados en todo el proyecto, así que
+ * podemos ocultar TODOS los SVG dentro de los toasts.
+ * ============================================================ */
+[data-sonner-toast] svg {
+  display: none !important;
+}
+[data-sonner-toast] [data-icon],
+[data-sonner-toast] .sonner-toast-icon,
+[data-sonner-toast] .sonner-icon {
+  display: none !important;
+}
