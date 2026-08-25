@@ -8,6 +8,10 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const polyfillPath = path.resolve(__dirname, "src/polyfills/async_hooks.js");
 
+const isVercel = Boolean(
+  process.env.VERCEL || process.env.VERCEL_ENV || process.env.NITRO_PRESET === "vercel",
+);
+
 export default defineConfig({
   resolve: {
     alias: [
@@ -19,7 +23,10 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     tanstackStart({
-      server: { entry: "server" },
+      server: {
+        entry: "server",
+        preset: isVercel ? "vercel" : undefined,
+      },
     }),
     viteReact(),
   ],
