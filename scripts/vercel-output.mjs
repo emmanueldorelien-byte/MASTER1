@@ -1,6 +1,7 @@
 // scripts/vercel-output.mjs
-// Post-build script: genera .vercel/output (Vercel Build Output API v3)
-// a partir del build de Vite + TanStack Start (Nitro) sin depender del preset.
+// Post-build: genera .vercel/output (Build Output API v3) para Vercel.
+//   - static/: assets cliente
+//   - functions/render.func/: SSR handler en Node.js 20.x CJS wrapper -> Nitro ESM
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -15,12 +16,11 @@ const FUNCTIONS_DIR = path.join(OUTPUT_DIR, "functions");
 const STATIC_DIR = path.join(OUTPUT_DIR, "static");
 const RENDER_FUNC = path.join(FUNCTIONS_DIR, "render.func");
 
-// 1. Limpiar output previo
 if (existsSync(OUTPUT_DIR)) rmSync(OUTPUT_DIR, { recursive: true, force: true });
 mkdirSync(STATIC_DIR, { recursive: true });
 mkdirSync(RENDER_FUNC, { recursive: true });
 
-// 2. Copiar assets estaticos (dist/client -> static/)
+// 1. Assets estaticos
 if (existsSync(DIST_CLIENT)) {
   for (const entry of readdirSync(DIST_CLIENT)) {
     cpSync(path.join(DIST_CLIENT, entry), path.join(STATIC_DIR, entry), {
@@ -29,109 +29,184 @@ if (existsSync(DIST_CLIENT)) {
   }
 }
 
-// 3. Copiar el build del servidor al interior de render.func
+// 2. Copiar dist/server al interior de render.func/server (ESM, no lo ejecutamos directamente)
 const RENDER_SERVER = path.join(RENDER_FUNC, "server");
 cpSync(DIST_SERVER, RENDER_SERVER, { recursive: true });
 
-// 4. Escribir el entry point de la funcion Vercel (Node.js 20.x)
-//    Convierte (req, res) de Vercel -> Request/Response de Fetch API que Nitro espera.
-const vcConfigJson = {
-  runtime: "nodejs20.x",
-  handler: "index.js",
-  launcherType: "Nodejs",
-  shouldAddHelpers: true,
-};
+// 3. Configuracion Vercel Build Output para render.func (Node.js 20.x - minimalista y estable)
 writeFileSync(
   path.join(RENDER_FUNC, ".vc-config.json"),
-  JSON.stringify(vcConfigJson, null, 2) + "\n",
-);
-
-writeFileSync(
-  path.join(RENDER_FUNC, "package.json"),
   JSON.stringify(
     {
-      name: "render-func",
-      version: "1.0.0",
-      private: true,
-      type: "module",
+      runtime: "nodejs20.x",
+      handler: "index.cjs",
+      launcherType: "Nodejs",
+      shouldAddHelpers: true,
     },
     null,
     2,
   ) + "\n",
 );
 
-const indexJs = `// render.func/index.js — Vercel Node.js entry -> Nitro fetch adapter
-import http from "node:http";
-import { Readable } from "node:stream";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
+// 4. Entry point CJS: Vercel loader llama module.exports = handler.
+//    Dentro, importamos dinamicamente el build ESM de Nitro/TanStack Start.
+//    Tambien adaptamos Node (req,res) <-> Fetch API (Request/Response) que Nitro usa
+//    y proveemos polyfill AsyncLocalStorage si faltara en runtime Vercel.
+const indexCjs = `"use strict";
+const http = require("node:http");
+const { Readable } = require("node:stream");
+const path = require("node:path");
+const fs = require("node:fs");
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const serverMod = await import("./server/server.js");
-const nitroApp = serverMod.default || serverMod;
-
-function toWebRequest(req) {
-  const protocol =
-    req.headers["x-forwarded-proto"] ||
-    (req.socket && req.socket.encrypted ? "https" : "http") ||
-    "https";
-  const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost";
-  const url = protocol + "://" + host + (req.url || "/");
-
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (value == null) continue;
-    if (Array.isArray(value)) value.forEach((v) => headers.append(key, v));
-    else headers.set(key, String(value));
+// Polyfill AsyncLocalStorage singleton utilizado por TanStack storage context
+(function polyfillAsyncLocalStorage() {
+  if (typeof globalThis !== "undefined" && globalThis.AsyncLocalStorage) return;
+  var STORE_KEY = "__tanstack_als_store__";
+  function defaultStore() {
+    return { startOptions: {} };
   }
+  function BPAsyncLocalStorage() { this[STORE_KEY] = defaultStore(); }
+  BPAsyncLocalStorage.prototype.getStore = function () {
+    var s = this[STORE_KEY];
+    if (!s || typeof s !== "object" || !("startOptions" in s)) {
+      s = defaultStore(); this[STORE_KEY] = s;
+    }
+    return s;
+  };
+  BPAsyncLocalStorage.prototype.run = function (store, cb) {
+    var prev = this[STORE_KEY]; this[STORE_KEY] = store || defaultStore();
+    var args = Array.prototype.slice.call(arguments, 2); var res;
+    try { res = cb.apply(null, args); }
+    finally { if (!res || typeof res.then !== "function") { this[STORE_KEY] = prev; } }
+    if (res && typeof res.then === "function") {
+      var self = this;
+      return res.then(
+        function (v) { self[STORE_KEY] = prev; return v; },
+        function (e) { self[STORE_KEY] = prev; throw e; }
+      );
+    }
+    return res;
+  };
+  BPAsyncLocalStorage.prototype.exit = function (cb) {
+    var prev = this[STORE_KEY]; this[STORE_KEY] = defaultStore();
+    var args = Array.prototype.slice.call(arguments, 1); var res;
+    try { res = cb.apply(null, args); }
+    finally { if (!res || typeof res.then !== "function") { this[STORE_KEY] = prev; } }
+    if (res && typeof res.then === "function") {
+      var self = this;
+      return res.then(
+        function (v) { self[STORE_KEY] = prev; return v; },
+        function (e) { self[STORE_KEY] = prev; throw e; }
+      );
+    }
+    return res;
+  };
+  BPAsyncLocalStorage.prototype.enterWith = function (s) { this[STORE_KEY] = s || defaultStore(); };
+  BPAsyncLocalStorage.prototype.disable = function () { this[STORE_KEY] = defaultStore(); };
+  try { Object.defineProperty(globalThis, "AsyncLocalStorage", { value: BPAsyncLocalStorage, writable: true, configurable: true }); }
+  catch (e) { globalThis.AsyncLocalStorage = BPAsyncLocalStorage; }
+  // Singleton esperado por TanStack Start en browser/servidor
+  if (!globalThis.__tanstack_start_storage_singleton__) {
+    globalThis.__tanstack_start_storage_singleton__ = new BPAsyncLocalStorage();
+  }
+})();
 
-  const method = req.method || "GET";
-  let body;
+var nitroAppPromise = null;
+function loadNitro() {
+  if (nitroAppPromise) return nitroAppPromise;
+  nitroAppPromise = Promise.resolve()
+    .then(function () {
+      return import("./server/server.js");
+    })
+    .then(function (m) {
+      var app = m && (m.default || m);
+      if (!app || typeof app.fetch !== "function") {
+        throw new Error("[vercel-render] server/server.js no exporta { fetch } - keys: " + Object.keys(m || {}).join(","));
+      }
+      return app;
+    });
+  return nitroAppPromise;
+}
+
+function fallbackHtml(err) {
+  var msg = err && err.message ? String(err.message) : String(err || "Unknown error");
+  return \`<!doctype html><html lang=ht><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Erè</title></head><body style="font:16px/1.5 system-ui,sans-serif;max-width:640px;margin:64px auto;padding:0 16px;color:#111"><h1>Paj sa a pa chaje</h1><p style="color:#4b5563">Gen yon pwoblèm ki rive. Eseye rechaje oswa tounen sou paj akèy la.</p><pre style="white-space:pre-wrap;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;font-size:13px">\${msg}\n\${err && err.stack ? String(err.stack) : ""}</pre></body></html>\`;
+}
+
+// Adaptador (IncomingMessage -> Web Request)
+function toWebRequest(req) {
+  var protocol = (req.headers["x-forwarded-proto"] && req.headers["x-forwarded-proto"].split(",")[0].trim()) ||
+    (req.socket && req.socket.encrypted ? "https" : "http") || "https";
+  var host = req.headers["x-forwarded-host"] || req.headers.host || "localhost";
+  var url = protocol + "://" + host + (req.url || "/");
+  var hdrs = new Headers();
+  var raw = req.headers;
+  Object.keys(raw).forEach(function (k) {
+    var v = raw[k];
+    if (v == null) return;
+    if (Array.isArray(v)) v.forEach(function (x) { hdrs.append(k, String(x)); });
+    else hdrs.set(k, String(v));
+  });
+  var method = (req.method || "GET").toUpperCase();
+  var body;
   if (method !== "GET" && method !== "HEAD") {
     body = Readable.toWeb(req);
   }
-  return new Request(url, { method, headers, body, duplex: body ? "half" : void 0 });
+  var init = { method: method, headers: hdrs };
+  if (body) { init.body = body; init.duplex = "half"; }
+  return new Request(url, init);
 }
 
-async function writeWebResponse(res, webResponse) {
-  const { status, headers } = webResponse;
-  const resHeaders = {};
-  for (const [k, v] of headers.entries()) resHeaders[k] = v;
-  res.writeHead(status, resHeaders);
+async function pipeBodyTo(webResponse, res) {
   if (!webResponse.body) { res.end(); return; }
-  const reader = webResponse.body.getReader();
+  var reader = webResponse.body.getReader();
   try {
     while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      if (value && value.length) res.write(Buffer.from(value));
+      var r = await reader.read();
+      if (r.done) break;
+      if (r.value && r.value.byteLength) res.write(Buffer.from(r.value));
     }
   } finally {
-    try { reader.releaseLock(); } catch {}
+    try { reader.releaseLock(); } catch (_e) { /* noop */ }
     res.end();
   }
 }
 
-export default async function handler(req, res) {
-  try {
-    const request = toWebRequest(req);
-    const response = await nitroApp.fetch(request, process.env, {});
-    await writeWebResponse(res, response);
-  } catch (err) {
-    console.error("[vercel-render]", err);
-    res.statusCode = 500;
-    res.setHeader("content-type", "text/html; charset=utf-8");
-    const fallback = serverMod.t ? serverMod.t() :
-      \`<!doctype html><html><head><meta charset=utf-8><title>Server Error</title></head><body><h1>Server Error</h1><p>\${String(err && err.message || err)}</p></body></html>\`;
-    res.end(fallback);
-  }
+async function writeResponse(res, webResponse) {
+  var status = webResponse.status || 200;
+  var out = {};
+  webResponse.headers.forEach(function (v, k) { out[k] = v; });
+  res.writeHead(status, out);
+  await pipeBodyTo(webResponse, res);
 }
-`;
-writeFileSync(path.join(RENDER_FUNC, "index.js"), indexJs);
 
-// 5. Escribir config.json de Vercel Build Output API
-//    - Primero assets estaticos (cache largo)
-//    - Luego enviar todo lo demas a la SSR function /render
+function handler(req, res) {
+  Promise.resolve()
+    .then(function () { return loadNitro(); })
+    .then(function (app) {
+      var request = toWebRequest(req);
+      var env = process.env;
+      var ctx = {
+        waitUntil: function (p) { try { res.on && res.on("finish", function () { Promise.resolve(p).catch(function () {}); }); } catch (_e) {} },
+        passThroughOnException: function () {},
+      };
+      return app.fetch(request, env, ctx);
+    })
+    .then(function (resp) { return writeResponse(res, resp); })
+    .catch(function (err) {
+      console.error("[vercel-render]", err && err.stack || err);
+      res.statusCode = 500;
+      res.setHeader("content-type", "text/html; charset=utf-8");
+      res.end(fallbackHtml(err));
+    });
+}
+
+module.exports = handler;
+module.exports.default = handler;
+`;
+writeFileSync(path.join(RENDER_FUNC, "index.cjs"), indexCjs);
+
+// 5. config.json Build Output API v3 (orden importante: headers staticos -> filesystem -> SSR fallback)
 const configJson = {
   version: 3,
   routes: [
