@@ -283,7 +283,7 @@ function Index() {
               </h1>
 
               <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground sm:text-lg lg:mx-0">
-                Yon sèl sesyon live pou w aprann sèvi ak entèlijans atifisyèl pou kreye kontni, bati
+                Sesyon an dirèk pou w aprann sèvi ak entèlijans atifisyèl pou kreye kontni, bati
                 aplikasyon, epi travay pi vit — san w pa bezwen eksperyans teknik.
               </p>
 
@@ -317,7 +317,7 @@ function Index() {
       </section>
 
       {/* MODULES */}
-      <section className="mx-auto max-w-6xl px-4 py-20" id="pwogram">
+      <section className="mx-auto max-w-6xl px-4 py-5" id="pwogram">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-2xl font-bold uppercase sm:text-4xl">
             Pwogram <span className="text-gradient-neon">fòmasyon an</span>

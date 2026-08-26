@@ -1106,33 +1106,33 @@ function AdminPage() {
                   </div>
 
                   <div className="mt-8 grid gap-6 md:grid-cols-2">
-                    <div className="space-y-4 rounded-2xl border border-border p-5">
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-4 rounded-2xl border-2 border-white/15 bg-background/40 p-6">
+                      <div className="flex items-center gap-2.5">
                         <div
-                          className={`grid size-9 place-items-center rounded-lg ${tabColors.schedule.ring} text-yellow-400`}
+                          className={`grid size-11 place-items-center rounded-xl ${tabColors.schedule.ring} text-yellow-300`}
                         >
-                          <Sparkles className="size-4" />
+                          <Sparkles className="size-5" />
                         </div>
-                        <h3 className="font-display text-lg font-bold">Tit fòmasyon</h3>
+                        <h3 className="font-display text-xl font-bold">Tit fòmasyon</h3>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2.5">
                         <Label htmlFor="training-title">Non ki parèt nan paj akkèy la</Label>
                         <Input
                           id="training-title"
                           value={trainingTitle}
                           placeholder={existingTrainingTitle ?? "Masterclass AI an Kreyòl"}
                           onChange={(event) => setTrainingTitle(event.target.value)}
-                          className="h-11"
                         />
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           Aktif:{" "}
-                          <span className="font-medium text-foreground">
+                          <span className="font-semibold text-foreground">
                             {existingTrainingTitle ?? "Default"}
                           </span>
                         </p>
                       </div>
                       <Button
                         variant="neon"
+                        size="lg"
                         onClick={() => {
                           const value = trainingTitle.trim();
                           if (!value) {
@@ -1147,27 +1147,26 @@ function AdminPage() {
                       </Button>
                     </div>
 
-                    <div className="space-y-4 rounded-2xl border border-border p-5">
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-4 rounded-2xl border-2 border-white/15 bg-background/40 p-6">
+                      <div className="flex items-center gap-2.5">
                         <div
-                          className={`grid size-9 place-items-center rounded-lg ${tabColors.schedule.ring} text-purple-400`}
+                          className={`grid size-11 place-items-center rounded-xl ${tabColors.schedule.ring} text-purple-300`}
                         >
-                          <Clock className="size-4" />
+                          <Clock className="size-5" />
                         </div>
-                        <h3 className="font-display text-lg font-bold">Dat & lè evènman</h3>
+                        <h3 className="font-display text-xl font-bold">Dat & lè evènman</h3>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2.5">
                         <Label htmlFor="event-date">Pwochen sesyon live</Label>
                         <Input
                           id="event-date"
                           type="datetime-local"
                           value={eventDateValue}
                           onChange={(e) => setEventDateValue(e.target.value)}
-                          className="h-11"
                         />
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           Sa a chanje Countdown la nan paj akkèy. Aktif:{" "}
-                          <span className="font-medium text-foreground">
+                          <span className="font-semibold text-foreground">
                             {existingEventDate
                               ? new Date(existingEventDate).toLocaleString()
                               : "Default"}
@@ -1176,16 +1175,16 @@ function AdminPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-4 rounded-2xl border border-border p-5">
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-4 rounded-2xl border-2 border-white/15 bg-background/40 p-6">
+                      <div className="flex items-center gap-2.5">
                         <div
-                          className={`grid size-9 place-items-center rounded-lg ${tabColors.certificates.ring} text-green-400`}
+                          className={`grid size-11 place-items-center rounded-xl ${tabColors.certificates.ring} text-green-300`}
                         >
-                          <BarChart3 className="size-4" />
+                          <BarChart3 className="size-5" />
                         </div>
-                        <h3 className="font-display text-lg font-bold">Kantite plas</h3>
+                        <h3 className="font-display text-xl font-bold">Kantite plas</h3>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2.5">
                         <Label htmlFor="total-spots">Total plas pou patisipan</Label>
                         <Input
                           id="total-spots"
@@ -1195,9 +1194,8 @@ function AdminPage() {
                           value={totalSpotsValue}
                           onChange={(e) => setTotalSpotsValue(e.target.value)}
                           placeholder={existingTotalSpots ?? "200"}
-                          className="h-11"
                         />
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           Aktif:{" "}
                           <span className="font-bold text-foreground">
                             {existingTotalSpots ?? "200"} plas
@@ -1213,27 +1211,26 @@ function AdminPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-4 rounded-2xl border border-border p-5">
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-4 rounded-2xl border-2 border-white/15 bg-background/40 p-6">
+                      <div className="flex items-center gap-2.5">
                         <div
-                          className={`grid size-9 place-items-center rounded-lg ${tabColors.youtube.ring} text-yellow-400`}
+                          className={`grid size-11 place-items-center rounded-xl ${tabColors.youtube.ring} text-yellow-300`}
                         >
-                          <Award className="size-4" />
+                          <Award className="size-5" />
                         </div>
-                        <h3 className="font-display text-lg font-bold">Dat sètifika</h3>
+                        <h3 className="font-display text-xl font-bold">Dat sètifika</h3>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2.5">
                         <Label htmlFor="cert-date">Emisyon sètifika patisipasyon</Label>
                         <Input
                           id="cert-date"
                           type="datetime-local"
                           value={certDateValue}
                           onChange={(e) => setCertDateValue(e.target.value)}
-                          className="h-11"
                         />
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           Aktif:{" "}
-                          <span className="font-medium text-foreground">
+                          <span className="font-semibold text-foreground">
                             {existingCertificateDate
                               ? new Date(existingCertificateDate).toLocaleDateString()
                               : "Pa defini"}
@@ -1466,55 +1463,48 @@ function AdminPage() {
                       </p>
                     </div>
 
-                    <div className="mt-8 grid gap-5">
-                      <div className="space-y-2">
-                        <Label htmlFor="module-title" className="text-base font-semibold">
-                          Non modil la
-                        </Label>
+                    <div className="mt-8 grid gap-6">
+                      <div className="space-y-2.5">
+                        <Label htmlFor="module-title">Non modil la</Label>
                         <Input
                           id="module-title"
                           value={moduleTitle}
                           onChange={(event) => setModuleTitle(event.target.value)}
                           placeholder="Egzanp: Modil 1 — Entwodiksyon ak entèlijans atifisyèl"
-                          className="h-11"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="module-date" className="text-base font-semibold">
-                          🗓️ Dat & Lè modil la
+                      <div className="space-y-2.5">
+                        <Label htmlFor="module-date">
+                          <span className="mr-1.5">🗓️</span>Dat & Lè modil la
                         </Label>
                         <Input
                           id="module-date"
                           type="datetime-local"
                           value={moduleDate}
                           onChange={(event) => setModuleDate(event.target.value)}
-                          className="h-11"
                         />
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           Lè dat ak lè sa a pase, modil la ap make otomatikman kòm "Terminé" nan paj
                           akkèy ak paj live la.
                         </p>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="module-description" className="text-base font-semibold">
-                          Deskripsyon modil la
-                        </Label>
+                      <div className="space-y-2.5">
+                        <Label htmlFor="module-description">Deskripsyon modil la</Label>
                         <Textarea
                           id="module-description"
                           value={moduleDescription}
                           onChange={(event) => setModuleDescription(event.target.value)}
                           placeholder="Sa ki nan modil sa a... egzanp: Kijan pou w kreye kontni, zouti yo itilize, egzèsis pratik..."
-                          rows={4}
                         />
                       </div>
-                      <div className="flex items-center justify-between rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="grid size-9 shrink-0 place-items-center rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-400">
-                            <Lock className="size-4" />
+                      <div className="flex items-center justify-between rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 p-4.5">
+                        <div className="flex items-start gap-3.5">
+                          <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-amber-500/50 bg-amber-500/15 text-amber-300">
+                            <Lock className="size-5" />
                           </div>
                           <div>
-                            <p className="font-semibold text-amber-200">Modil Premium (Pou peye)</p>
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="font-bold text-amber-200 text-[1rem]">Modil Premium (Pou peye)</p>
+                            <p className="text-sm text-muted-foreground leading-relaxed mt-0.5">
                               Si ou aktive sa a, klikan yo ap dirije WhatsApp ou pou peye pou yo
                               jwenn aksè.
                             </p>
@@ -1523,40 +1513,37 @@ function AdminPage() {
                         <Switch
                           checked={moduleIsPaid}
                           onCheckedChange={setModuleIsPaid}
-                          className="data-[state=checked]:bg-amber-500"
+                          className="data-[state=checked]:bg-amber-500 scale-110"
                         />
                       </div>
 
                       {moduleIsPaid && (
-                        <div className="space-y-4 rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] p-4">
-                          <div className="space-y-2">
-                            <Label
-                              htmlFor="module-price"
-                              className="text-sm font-semibold text-amber-200"
-                            >
-                              💰 Pri a (monnen ak lajan)
+                        <div className="space-y-5 rounded-2xl border-2 border-amber-500/30 bg-amber-500/[0.06] p-5">
+                          <div className="space-y-2.5">
+                            <Label htmlFor="module-price" className="text-amber-200">
+                              <span className="mr-1.5">💰</span>Pri a (monnen ak lajan)
                             </Label>
                             <Input
                               id="module-price"
                               value={modulePrice}
                               onChange={(e) => setModulePrice(e.target.value)}
                               placeholder="Egzanp: 500 HTG oswa 25 USD"
-                              className="h-11 font-semibold text-amber-300"
+                              className="font-bold text-amber-200"
                             />
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="text-sm text-muted-foreground leading-relaxed">
                               Mete pri a ak lajan an egzanp: "1500 HTG", "30 USD", "2500 Gdes"
                             </p>
                           </div>
 
                           <div className="space-y-3">
-                            <Label className="text-sm font-semibold text-amber-200">
-                              💳 Mwayen peman yo aksepte yo
+                            <Label className="text-amber-200">
+                              <span className="mr-1.5">💳</span>Mwayen peman yo aksepte yo
                             </Label>
-                            <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-2.5 sm:grid-cols-2">
                               {PAYMENT_METHODS.map((method) => (
                                 <label
                                   key={method}
-                                  className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3 cursor-pointer hover:bg-secondary/70 transition-colors"
+                                  className="flex items-center gap-3 rounded-2xl border-2 border-white/15 bg-secondary/60 p-3.5 cursor-pointer hover:bg-secondary hover:border-amber-500/40 transition-all"
                                 >
                                   <Checkbox
                                     checked={modulePaymentMethods.includes(method)}
@@ -1569,9 +1556,9 @@ function AdminPage() {
                                         );
                                       }
                                     }}
-                                    className="data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                    className="data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500 scale-110"
                                   />
-                                  <span className="text-sm font-medium">{method}</span>
+                                  <span className="text-[0.95rem] font-semibold">{method}</span>
                                 </label>
                               ))}
                             </div>
@@ -1581,7 +1568,7 @@ function AdminPage() {
 
                       <Button
                         variant="neon"
-                        size="lg"
+                        size="xl"
                         onClick={() => {
                           if (
                             !moduleTitle.trim() ||

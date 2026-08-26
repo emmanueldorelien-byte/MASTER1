@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getLiveData, type ModuleRow } from "@/admin.functions";
+import { getLiveData, registerParticipant, type ModuleRow, type RegisterResult } from "@/admin.functions";
 import { sendConfirmationEmail } from "@/email.functions";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -53,12 +53,7 @@ const schema = z.object({
     .max(300),
 });
 
-type RpcResult = {
-  status: "ok" | "already" | "full" | "error";
-  message?: string;
-  verification_id?: string;
-  spots_left?: number;
-};
+type RpcResult = RegisterResult;
 
 export function useSpotsLeft() {
   return useQuery({
@@ -167,6 +162,7 @@ export function SpotsCounter() {
 export function RegistrationForm() {
   const qc = useQueryClient();
   const sendConfirmationEmailFn = useServerFn(sendConfirmationEmail);
+  const registerFn = useServerFn(registerParticipant);
   const getLiveDataFn = useServerFn(getLiveData);
   const { data: liveData, isLoading: modulesLoading } = useQuery({
     queryKey: ["public-settings"],
@@ -186,14 +182,12 @@ export function RegistrationForm() {
 
   const mutation = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
-      const { data, error } = await supabase.rpc("enskri_patisipan", {
-        p_full_name: values.full_name,
-        p_email: values.email,
-        p_whatsapp: values.whatsapp,
-        p_cert_lang: values.cert_lang,
-      });
-      if (error) throw error;
-      return data as unknown as RpcResult & { cert_lang: CertLang; full_name: string };
+      const result = await registerFn({ data: values });
+      if (!result) throw new Error("Pa gen repons nan sèvè a.");
+      if (result.status === "error") {
+        throw new Error(result.message ?? "Yon erè sistèm rive. Eseye ankò.");
+      }
+      return result as unknown as RpcResult & { cert_lang: CertLang; full_name: string };
     },
     onSuccess: (result, values) => {
       qc.invalidateQueries({ queryKey: ["spots-left"] });
@@ -205,7 +199,6 @@ export function RegistrationForm() {
           values.cert_lang ||
           "ht";
 
-        // Email is sent in the background: never block success UI.
         Promise.resolve()
           .then(async () => {
             try {
@@ -248,14 +241,33 @@ export function RegistrationForm() {
           description: "Swiv nou sou YouTube pou pwochen sesyon an.",
         });
       } else {
-        toast.error(result.message ?? "Yon erè rive. Eseye ankò.");
+        toast.error((result as any).message ?? "Yon erè rive. Eseye ankò.");
       }
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : String(err ?? "");
+      const anyErr = err as any;
+      let msg: string = "";
+      if (anyErr != null && typeof anyErr === "object") {
+        msg =
+          anyErr.message ??
+          anyErr.error_description ??
+          anyErr.details ??
+          anyErr.hint ??
+          (typeof anyErr.toString === "function" && anyErr.toString() !== "[object Object]"
+            ? anyErr.toString()
+            : "");
+      }
+      if (!msg) {
+        try {
+          msg = err instanceof Error ? err.message : String(err ?? "");
+        } catch {
+          msg = "";
+        }
+      }
+      if (msg === "[object Object]") msg = "";
       toast.error("Koneksyon an echwe.", {
         description: msg
-          ? `${msg}`
+          ? msg
           : "Tanpri verifye ke migrasyon SQL yo te kouri nan Supabase epi eseye ankò.",
       });
     },
@@ -279,8 +291,8 @@ export function RegistrationForm() {
   }
 
   return (
-    <form onSubmit={submit} className="glass space-y-5 rounded-3xl p-6 sm:p-8">
-      <div className="space-y-2">
+    <form onSubmit={submit} className="glass space-y-7 rounded-3xl p-6 sm:p-9">
+      <div className="space-y-2.5">
         <Label htmlFor="full_name">Non konplè</Label>
         <Input
           id="full_name"
@@ -289,10 +301,12 @@ export function RegistrationForm() {
           placeholder="Jan Batis Pyè"
           onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
         />
-        {errors["full_name"] && <p className="text-xs text-destructive">{errors["full_name"]}</p>}
+        {errors["full_name"] && (
+          <p className="text-sm font-semibold text-destructive">{errors["full_name"]}</p>
+        )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label htmlFor="email">Adrès imel</Label>
         <Input
           id="email"
@@ -302,10 +316,12 @@ export function RegistrationForm() {
           placeholder="ou@imel.com"
           onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
         />
-        {errors["email"] && <p className="text-xs text-destructive">{errors["email"]}</p>}
+        {errors["email"] && (
+          <p className="text-sm font-semibold text-destructive">{errors["email"]}</p>
+        )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label htmlFor="whatsapp">Nimewo WhatsApp</Label>
         <Input
           id="whatsapp"
@@ -315,17 +331,19 @@ export function RegistrationForm() {
           placeholder="+509 0000 0000"
           onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))}
         />
-        {errors["whatsapp"] && <p className="text-xs text-destructive">{errors["whatsapp"]}</p>}
+        {errors["whatsapp"] && (
+          <p className="text-sm font-semibold text-destructive">{errors["whatsapp"]}</p>
+        )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label htmlFor="training_title">
-          <GraduationCap className="inline size-3.5 mr-1 text-accent" />
+          <GraduationCap className="inline size-5 mr-1.5 text-accent -translate-y-0.5" />
           Tit fòmasyon / modil ou vle patisipe
         </Label>
         {modulesLoading || modules.length === 0 ? (
-          <div className="flex h-10 items-center rounded-lg border border-border bg-background px-3 text-xs text-muted-foreground">
-            {modulesLoading ? "Chajman modil yo…" : "Aucun modil disponible pou le moment."}
+          <div className="flex h-12 items-center rounded-2xl border-2 border-white/15 bg-background/70 px-4 text-[1rem] font-medium text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+            {modulesLoading ? "Chajman modil yo…" : "Pa gen modil disponib kounye a."}
           </div>
         ) : (
           <Select
@@ -338,9 +356,9 @@ export function RegistrationForm() {
             <SelectContent>
               {modules.map((m) => (
                 <SelectItem key={m.id} value={m.title}>
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="size-3.5 text-accent shrink-0" />
-                    <span>{m.title}</span>
+                  <div className="flex items-center gap-2.5 py-1">
+                    <BookOpen className="size-4.5 text-accent shrink-0" />
+                    <span className="text-[0.95rem]">{m.title}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -348,14 +366,14 @@ export function RegistrationForm() {
           </Select>
         )}
         {errors["training_title"] && (
-          <p className="text-xs text-destructive">{errors["training_title"]}</p>
+          <p className="text-sm font-semibold text-destructive">{errors["training_title"]}</p>
         )}
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-sm text-muted-foreground leading-relaxed">
           Ou ka toujou enskri pou lòt modil pita. Chak modil gen pwòp sètifika li.
         </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label htmlFor="cert_lang">Lang sètifika w pito</Label>
         <Select
           value={form.cert_lang}
@@ -367,7 +385,7 @@ export function RegistrationForm() {
           <SelectContent>
             {CERT_LANGS.map((l) => (
               <SelectItem key={l.value} value={l.value}>
-                {l.label}
+                <span className="text-[0.95rem]">{l.label}</span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -385,8 +403,8 @@ export function RegistrationForm() {
         Rezève plas mwen — Gratis
       </Button>
 
-      <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-        <ShieldCheck className="size-3.5 text-accent" />
+      <p className="flex items-center justify-center gap-2.5 text-sm text-muted-foreground">
+        <ShieldCheck className="size-4.5 text-accent" />
         Enfòmasyon ou rete prive. Nou pa pataje yo ak pèsonn.
       </p>
     </form>

@@ -203,19 +203,19 @@ export function AttendanceForm() {
   }
 
   return (
-    <form onSubmit={submit} className="glass space-y-5 rounded-3xl p-6 sm:p-8">
-      <div className="flex items-center gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-4 py-3">
-        <Ticket className="size-5 text-accent shrink-0" />
-        <p className="text-sm text-muted-foreground">
-          Mete <span className="font-semibold text-foreground">kòd asistans</span> ke admin la
+    <form onSubmit={submit} className="glass space-y-7 rounded-3xl p-6 sm:p-9">
+      <div className="flex items-center gap-3.5 rounded-2xl border-2 border-accent/40 bg-accent/10 px-4.5 py-3.5">
+        <Ticket className="size-6 text-accent shrink-0" />
+        <p className="text-[0.95rem] font-semibold leading-relaxed text-muted-foreground">
+          Mete <span className="font-black text-foreground">kòd asistans</span> ke admin la
           pataje avèk ou apre sesyon an.
         </p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-2">
+      <div className="grid gap-6 sm:grid-cols-2">
+        <div className="space-y-2.5">
           <Label htmlFor="att-first-name">
-            <User className="inline size-3.5 mr-1 text-accent" />
+            <User className="inline size-5 mr-1.5 text-accent -translate-y-0.5" />
             Non
           </Label>
           <Input
@@ -226,11 +226,11 @@ export function AttendanceForm() {
             onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
           />
           {errors["first_name"] && (
-            <p className="text-xs text-destructive">{errors["first_name"]}</p>
+            <p className="text-sm font-semibold text-destructive">{errors["first_name"]}</p>
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           <Label htmlFor="att-last-name">Non fanmi</Label>
           <Input
             id="att-last-name"
@@ -239,13 +239,15 @@ export function AttendanceForm() {
             placeholder="Pierre-Louis"
             onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
           />
-          {errors["last_name"] && <p className="text-xs text-destructive">{errors["last_name"]}</p>}
+          {errors["last_name"] && (
+            <p className="text-sm font-semibold text-destructive">{errors["last_name"]}</p>
+          )}
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label htmlFor="att-email">
-          <Mail className="inline size-3.5 mr-1 text-accent" />
+          <Mail className="inline size-5 mr-1.5 text-accent -translate-y-0.5" />
           Adrès imel
         </Label>
         <Input
@@ -256,15 +258,17 @@ export function AttendanceForm() {
           placeholder="ou@imel.com"
           onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
         />
-        {errors["email"] && <p className="text-xs text-destructive">{errors["email"]}</p>}
-        <p className="text-[11px] text-muted-foreground">
+        {errors["email"] && (
+          <p className="text-sm font-semibold text-destructive">{errors["email"]}</p>
+        )}
+        <p className="text-sm text-muted-foreground leading-relaxed">
           Menm imel la ou pral itilize pou verifye ak telechaje sètifika ou.
         </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <Label htmlFor="att-code">
-          <KeyRound className="inline size-3.5 mr-1 text-accent" />
+          <KeyRound className="inline size-5 mr-1.5 text-accent -translate-y-0.5" />
           Kòd asistans (admin ba w li)
         </Label>
         <Input
@@ -272,10 +276,12 @@ export function AttendanceForm() {
           value={form.code}
           maxLength={50}
           placeholder="ABCD-1234"
-          className="font-mono tracking-wider uppercase"
+          className="font-mono tracking-[0.2em] uppercase text-[1.1rem]"
           onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
         />
-        {errors["code"] && <p className="text-xs text-destructive">{errors["code"]}</p>}
+        {errors["code"] && (
+          <p className="text-sm font-semibold text-destructive">{errors["code"]}</p>
+        )}
       </div>
 
       <Button
@@ -289,8 +295,8 @@ export function AttendanceForm() {
         Make asistans mwen
       </Button>
 
-      <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-        <ShieldCheck className="size-3.5 text-accent" />
+      <p className="flex items-center justify-center gap-2.5 text-sm text-muted-foreground">
+        <ShieldCheck className="size-4.5 text-accent" />
         Enfòmasyon ou rete prive. Nou pa pataje yo ak pèsonn.
       </p>
     </form>

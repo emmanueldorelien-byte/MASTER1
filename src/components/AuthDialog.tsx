@@ -182,10 +182,10 @@ export function AuthDialog({
             </TabsList>
 
             <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email" className="text-sm font-medium">
-                    <Mail className="inline size-4 mr-1.5 text-accent" />
+              <form onSubmit={handleLogin} className="space-y-6">
+                <div className="space-y-2.5">
+                  <Label htmlFor="login-email">
+                    <Mail className="inline size-5 mr-1.5 text-accent -translate-y-0.5" />
                     Imel
                   </Label>
                   <Input
@@ -194,15 +194,14 @@ export function AuthDialog({
                     placeholder="ou@imel.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-11 rounded-xl"
                     autoComplete="email"
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="login-password" className="text-sm font-medium">
-                    <Lock className="inline size-4 mr-1.5 text-accent" />
+                <div className="space-y-2.5">
+                  <Label htmlFor="login-password">
+                    <Lock className="inline size-5 mr-1.5 text-accent -translate-y-0.5" />
                     Modpas
                   </Label>
                   <Input
@@ -211,7 +210,6 @@ export function AuthDialog({
                     placeholder="Modpas ou"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 rounded-xl"
                     autoComplete="current-password"
                     required
                   />
@@ -221,7 +219,7 @@ export function AuthDialog({
                   type="submit"
                   variant="neon"
                   size="xl"
-                  className="w-full h-12"
+                  className="w-full"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -235,10 +233,10 @@ export function AuthDialog({
             </TabsContent>
 
             <TabsContent value="register">
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="register-name" className="text-sm font-medium">
-                    <User className="inline size-4 mr-1.5 text-accent" />
+              <form onSubmit={handleRegister} className="space-y-6">
+                <div className="space-y-2.5">
+                  <Label htmlFor="register-name">
+                    <User className="inline size-5 mr-1.5 text-accent -translate-y-0.5" />
                     Non ak Siyati
                   </Label>
                   <Input
@@ -247,15 +245,14 @@ export function AuthDialog({
                     placeholder="Non ak Siyati"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="h-11 rounded-xl"
                     autoComplete="name"
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="register-whatsapp" className="text-sm font-medium">
-                    <Phone className="inline size-4 mr-1.5 text-accent" />
+                <div className="space-y-2.5">
+                  <Label htmlFor="register-whatsapp">
+                    <Phone className="inline size-5 mr-1.5 text-accent -translate-y-0.5" />
                     WhatsApp <span className="text-muted-foreground font-normal">(opsyonèl)</span>
                   </Label>
                   <Input
@@ -264,14 +261,13 @@ export function AuthDialog({
                     placeholder="+509 ..."
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
-                    className="h-11 rounded-xl"
                     autoComplete="tel"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="register-email" className="text-sm font-medium">
-                    <Mail className="inline size-4 mr-1.5 text-accent" />
+                <div className="space-y-2.5">
+                  <Label htmlFor="register-email">
+                    <Mail className="inline size-5 mr-1.5 text-accent -translate-y-0.5" />
                     Imel
                   </Label>
                   <Input
@@ -280,15 +276,14 @@ export function AuthDialog({
                     placeholder="ou@imel.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-11 rounded-xl"
                     autoComplete="email"
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="register-password" className="text-sm font-medium">
-                    <Lock className="inline size-4 mr-1.5 text-accent" />
+                <div className="space-y-2.5">
+                  <Label htmlFor="register-password">
+                    <Lock className="inline size-5 mr-1.5 text-accent -translate-y-0.5" />
                     Modpas
                   </Label>
                   <Input
@@ -297,15 +292,14 @@ export function AuthDialog({
                     placeholder="Modpas ou"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 rounded-xl"
                     autoComplete="new-password"
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="register-confirm" className="text-sm font-medium">
-                    <Lock className="inline size-4 mr-1.5 text-accent" />
+                <div className="space-y-2.5">
+                  <Label htmlFor="register-confirm">
+                    <Lock className="inline size-5 mr-1.5 text-accent -translate-y-0.5" />
                     Konfime Modpas
                   </Label>
                   <Input
@@ -314,7 +308,6 @@ export function AuthDialog({
                     placeholder="Konfime modpas ou"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="h-11 rounded-xl"
                     autoComplete="new-password"
                     required
                   />
@@ -324,7 +317,7 @@ export function AuthDialog({
                   type="submit"
                   variant="neon"
                   size="xl"
-                  className="w-full h-12 mt-2"
+                  className="w-full"
                   disabled={isLoading}
                 >
                   {isLoading ? (

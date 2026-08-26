@@ -1,16 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Tables } from "@/integrations/supabase/types";
+import { getRequest } from "@tanstack/react-start/server";
 
-// ============================================================
-// SEGURIDAD: Helper de autenticación SERVER-SIDE
-// NUNCA confíes en isAdmin del cliente; las funciones de server
-// deben validar el rol contra la DB usando el JWT real.
-//
-// Obtiene el token de dos fuentes (en orden de prioridad):
-//   1. Header "Authorization: Bearer <token>"  (llamadas cliente → serverFn)
-//   2. Cookies del request via getRequest()    (SSR y server-side)
-// ============================================================
 async function requireAdmin(): Promise<{ user_id: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { createClient } = await import("@supabase/supabase-js");
@@ -26,10 +18,10 @@ async function requireAdmin(): Promise<{ user_id: string }> {
   let cookieHeader: string | null = null;
 
   try {
-    const { getRequest } = await import("@tanstack/react-start/server");
     const request = getRequest();
     if (request?.headers) {
-      const auth = request.headers.get("authorization");
+      const auth =
+        request.headers.get("authorization") ?? request.headers.get("Authorization");
       if (auth && auth.startsWith("Bearer ")) {
         bearerToken = auth.slice("Bearer ".length);
       }
@@ -37,21 +29,131 @@ async function requireAdmin(): Promise<{ user_id: string }> {
       if (cookie) cookieHeader = cookie;
     }
   } catch {
-    // getRequest() no disponible (contexto cliente o edge)
+    // getRequest() no disponible
   }
 
-  // Fallback SSR antiguo por compatibilidad
-  if (!cookieHeader) {
+  try {
+    const modRR = await import(
+      /* @vite-ignore */ "@tanstack/start-server-core/request-response" as string
+    );
+    if (!bearerToken && typeof (modRR as any).getRequestHeader === "function") {
+      const authH = (modRR as any).getRequestHeader("authorization");
+      if (typeof authH === "string" && authH.startsWith("Bearer ")) {
+        bearerToken = authH.slice("Bearer ".length);
+      }
+    }
+    if (!cookieHeader && typeof (modRR as any).getCookie === "function") {
+      try {
+        const cookies = (modRR as any).getCookies?.();
+        if (cookies && typeof cookies === "object") {
+          cookieHeader = Object.entries(cookies as Record<string, string>)
+            .map(([k, v]) => `${k}=${v}`)
+            .join("; ");
+        }
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  if (!bearerToken) {
     try {
       const g = globalThis as unknown as { __SSR_REQUEST__?: { headers?: Record<string, string> } };
       const h = g.__SSR_REQUEST__?.headers;
-      if (h && typeof h === "object" && "cookie" in h) cookieHeader = String((h as any).cookie);
+      if (h && typeof h === "object") {
+        const entries = Object.entries(h);
+        for (const [k, v] of entries) {
+          if (k.toLowerCase() === "authorization" && typeof v === "string" && v.startsWith("Bearer ")) {
+            bearerToken = v.slice("Bearer ".length);
+          }
+          if (k.toLowerCase() === "cookie" && typeof v === "string") {
+            cookieHeader = v;
+          }
+        }
+      }
     } catch {
       // ignora
     }
   }
 
-  if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
+  const bearerParts = bearerToken?.split(".") ?? [];
+  if (bearerToken && bearerParts.length === 3) {
+    try {
+      const payloadB64 = (bearerParts[1] ?? "").replace(/-/g, "+").replace(/_/g, "/");
+      const decoded = JSON.parse(
+        decodeURIComponent(
+          atob(payloadB64)
+            .split("")
+            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+            .join(""),
+        ),
+      );
+      if (decoded?.sub && typeof decoded.sub === "string") {
+        userId = decoded.sub;
+      }
+    } catch {
+      // invalid b64, skip to createClient fallback
+      userId = null;
+    }
+  }
+
+  if (!bearerToken && cookieHeader) {
+    try {
+      const cookieMap = new Map<string, string>();
+      cookieHeader.split(";").forEach((part) => {
+        const [k, ...rest] = part.split("=");
+        if (k && rest.length) {
+          cookieMap.set(
+            k.trim(),
+            decodeURIComponent(rest.join("=").trim()).replace(/^"|"$/g, ""),
+          );
+        }
+      });
+      for (const [name, value] of cookieMap.entries()) {
+        if (
+          (name.startsWith("sb-") && name.endsWith("-auth-token")) ||
+          name === "supabase-auth-token"
+        ) {
+          let parsed: any = null;
+          try {
+            parsed = JSON.parse(value);
+          } catch {
+            parsed = null;
+          }
+          const tok =
+            (parsed && typeof parsed === "object" && (parsed.access_token || parsed.token)) ||
+            (typeof value === "string" && value.split(".").length === 3 ? value : null);
+          const tokParts = tok?.split(".") ?? [];
+          if (tok && typeof tok === "string" && tokParts.length === 3) {
+            bearerToken = tok;
+            const payloadB64 = (tokParts[1] ?? "").replace(/-/g, "+").replace(/_/g, "/");
+            try {
+              const decoded = JSON.parse(
+                decodeURIComponent(
+                  atob(payloadB64)
+                    .split("")
+                    .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join(""),
+                ),
+              );
+              if (decoded?.sub && typeof decoded.sub === "string") {
+                userId = decoded.sub;
+                break;
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!userId && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
     try {
       const headers: Record<string, string> = {};
       if (cookieHeader) headers["Cookie"] = cookieHeader;
@@ -702,3 +804,126 @@ export const getAdminSigner = createServerFn({ method: "GET" }).handler(async ()
     email: data.email ?? null,
   };
 });
+
+export type RegisterResult = {
+  status: "ok" | "already" | "full" | "error";
+  message?: string;
+  verification_id?: string;
+  spots_left?: number;
+  full_name?: string;
+  cert_lang?: "ht" | "fr" | "es" | "en";
+};
+
+export const registerParticipant = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      full_name: z.string().trim().min(3, { message: "Non ou dwe gen omwen 3 karaktè" }).max(100),
+      email: z.string().trim().email({ message: "Imel la pa valid" }).max(255),
+      whatsapp: z.string().trim().min(6, { message: "Nimewo WhatsApp pa valid" }).max(30),
+      cert_lang: z.enum(["ht", "fr", "es", "en"]),
+      training_title: z.string().trim().min(1).max(300).optional(),
+    }),
+  )
+  .handler(async ({ data }): Promise<RegisterResult> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const email = data.email.toLowerCase().trim();
+    const name = data.full_name.trim();
+    const validLangs = ["ht", "fr", "es", "en"] as const;
+    const lang = validLangs.includes(data.cert_lang as any) ? (data.cert_lang as "ht" | "fr" | "es" | "en") : "ht";
+    const wa = data.whatsapp.trim();
+
+    const { data: existing } = await supabaseAdmin
+      .from("enskripsyon")
+      .select("id, verification_id, full_name, cert_lang")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (existing) {
+      return {
+        status: "already",
+        verification_id: existing.verification_id,
+        full_name: existing.full_name ?? name,
+        cert_lang: (existing.cert_lang as any) ?? lang,
+      };
+    }
+
+    let totalSpots = 200;
+    try {
+      const { data: totalRow } = await supabaseAdmin
+        .from("admin_settings")
+        .select("value")
+        .eq("key", "total_spots")
+        .maybeSingle();
+      if (totalRow?.value) {
+        const parsed = parseInt(totalRow.value, 10);
+        if (Number.isFinite(parsed) && parsed > 0) totalSpots = parsed;
+      }
+    } catch {
+      // ignore, default 200
+    }
+
+    try {
+      const { count } = await supabaseAdmin
+        .from("enskripsyon")
+        .select("*", { count: "exact", head: true });
+      if (typeof count === "number" && count >= totalSpots) {
+        return { status: "full" };
+      }
+    } catch {
+      // ignore count and continue
+    }
+
+    const vid =
+      "MC-" +
+      Date.now().toString(36).toUpperCase() +
+      "-" +
+      Math.random().toString(36).slice(2, 8).toUpperCase();
+
+    const { error: insertErr } = await supabaseAdmin.from("enskripsyon").insert({
+      full_name: name,
+      email,
+      whatsapp: wa,
+      cert_lang: lang,
+      verification_id: vid,
+    });
+
+    if (insertErr) {
+      try {
+        const { data: existing2 } = await supabaseAdmin
+          .from("enskripsyon")
+          .select("verification_id, full_name, cert_lang")
+          .eq("email", email)
+          .maybeSingle();
+        if (existing2) {
+          return {
+            status: "already",
+            verification_id: existing2.verification_id,
+            full_name: existing2.full_name ?? name,
+            cert_lang: (existing2.cert_lang as any) ?? lang,
+          };
+        }
+      } catch {
+        // ignore secondary check
+      }
+      return { status: "error", message: insertErr.message };
+    }
+
+    let spotsLeft = totalSpots - 1;
+    try {
+      const { count } = await supabaseAdmin
+        .from("enskripsyon")
+        .select("*", { count: "exact", head: true });
+      if (typeof count === "number") spotsLeft = Math.max(0, totalSpots - count);
+    } catch {
+      // ignore
+    }
+
+    return {
+      status: "ok",
+      verification_id: vid,
+      full_name: name,
+      cert_lang: lang,
+      spots_left: spotsLeft,
+    };
+  });

@@ -1,39 +1,69 @@
-// Runtime monkey-patch for @tanstack/start-server-core.getResponse
-// This file is imported early from `src/start.ts` to provide a safe
-// fallback in case the bundled library runs in an environment where the
-// H3 event or `res` is missing.
+import { AsyncLocalStorage } from 'node:async_hooks'
 
-// Only run on server (Node). Guard against bundlers by building the
-// import path dynamically so Vite's static resolver doesn't try to
-// analyze or bundle the deep import.
-if (typeof window === 'undefined') {
-  ;(async function applyPatch() {
-    try {
-      const pkg = '@tanstack/start-server-core'
-      const modPath = pkg + '/src/request-response'
-      // Tell Vite to ignore static analysis for this dynamic runtime-only import
-      const mod = await import(/* @vite-ignore */ modPath as any)
-      if (!mod) return
-      const original = (mod as any).getResponse
-      if (typeof original !== 'function') return
+const GLOBAL_EVENT_STORAGE_KEY = Symbol.for('tanstack-start:event-storage')
+const globalObj = globalThis as any
 
-      ;(mod as any).getResponse = function patchedGetResponse(...args: any[]) {
-        try {
-          return original.apply(this, args)
-        } catch (err) {
-          return {
-            headers: new Headers(),
-            status: 500,
-            statusText: '',
-          } as any
+function buildFallbackH3(): any {
+  const hdrs = new Headers()
+  try {
+    const g = globalThis as any
+    const ssrReq = g.__SSR_REQUEST__
+    if (ssrReq && ssrReq.headers && typeof ssrReq.headers === 'object') {
+      for (const [k, v] of Object.entries(ssrReq.headers as Record<string, string>)) {
+        if (typeof k === 'string' && typeof v === 'string') {
+          hdrs.set(k, v)
         }
       }
-    } catch (e) {
-      // Non-fatal: log and continue. Avoid throwing during startup.
-      // eslint-disable-next-line no-console
-      console.warn('[patch-start-core] failed to apply patch', e)
     }
-  })()
+  } catch {
+    // ignore
+  }
+  return {
+    req: { headers: hdrs },
+    res: {
+      headers: new Headers(),
+      status: 200,
+      statusText: '',
+    },
+  }
+}
+
+function getFallbackStore(): any {
+  return { h3Event: buildFallbackH3() }
+}
+
+try {
+  const origGetStore = AsyncLocalStorage.prototype.getStore
+  AsyncLocalStorage.prototype.getStore = function getStoreSafe(this: any) {
+    const store = origGetStore.call(this)
+    if (store !== undefined && store !== null) {
+      if (this === globalObj[GLOBAL_EVENT_STORAGE_KEY]) {
+        return (store as any).h3Event ? store : getFallbackStore()
+      }
+      return store
+    }
+    if (this === globalObj[GLOBAL_EVENT_STORAGE_KEY]) {
+      return getFallbackStore()
+    }
+    return store
+  }
+} catch {
+  // AsyncLocalStorage patching not supported in this runtime
+}
+
+if (typeof window === 'undefined') {
+  try {
+    const existingStorage = globalObj[GLOBAL_EVENT_STORAGE_KEY] as AsyncLocalStorage<any> | undefined
+    if (existingStorage && typeof (existingStorage as any).enterWith === 'function') {
+      try {
+        ;(existingStorage as any).enterWith(getFallbackStore())
+      } catch {
+        // older Node without enterWith support
+      }
+    }
+  } catch {
+    // ignore
+  }
 }
 
 export {}

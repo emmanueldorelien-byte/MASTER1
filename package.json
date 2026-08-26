@@ -3,9 +3,12 @@
   "private": true,
   "sideEffects": false,
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && node scripts/vercel-output.mjs",
+    "build": "vite build && node scripts/patch-vercel-output.mjs",
     "build:vite": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "nitro preview --host 0.0.0.0 --port 4173",

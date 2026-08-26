@@ -55,6 +55,35 @@ function debugMiddlewareErrorHtml(error: unknown, handlerType: string): string {
 </html>`;
 }
 
+const ssrRequestBridge = createMiddleware().server(
+  async ({ request, next }) => {
+    try {
+      const headerObj: Record<string, string> = {};
+      if (request?.headers?.forEach) {
+        request.headers.forEach((v, k) => {
+          headerObj[k.toLowerCase()] = v;
+        });
+      } else if (request?.headers) {
+        for (const [k, v] of (request.headers as any).entries?.() ?? []) {
+          headerObj[String(k).toLowerCase()] = String(v);
+        }
+      }
+      (globalThis as any).__SSR_REQUEST__ = { headers: headerObj };
+    } catch {
+      // ignore bridge setup error
+    }
+    try {
+      return await next();
+    } finally {
+      try {
+        delete (globalThis as any).__SSR_REQUEST__;
+      } catch {
+        (globalThis as any).__SSR_REQUEST__ = undefined;
+      }
+    }
+  },
+);
+
 const errorMiddleware = createMiddleware().server(
   async ({ request, handlerType, next }) => {
     try {
@@ -116,5 +145,5 @@ const lazyCsrfMiddleware = createMiddleware().server(async (ctx) => {
 
 export const startInstance = createStart(() => ({
   functionMiddleware: [attachSupabaseAuth],
-  requestMiddleware: [errorMiddleware, lazyCsrfMiddleware],
+  requestMiddleware: [ssrRequestBridge, errorMiddleware, lazyCsrfMiddleware],
 }));
