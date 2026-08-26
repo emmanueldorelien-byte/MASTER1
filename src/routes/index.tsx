@@ -255,7 +255,7 @@ function Index() {
         <div className="absolute inset-0 grid-backdrop opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/60 to-background/95" />
 
-        <div className="relative mx-auto max-w-7xl px-4 pt-6 pb-16 sm:pt-8">
+        <div className="relative mx-auto max-w-7xl px-4 pt-6 pb-16 sm:pt-3">
           <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
             {/* LADO IZQUIERDO: CAROUSEL */}
             <div className="mx-auto w-full max-w-md lg:mx-0 order-2 lg:order-1">
@@ -299,7 +299,7 @@ function Index() {
                 ))}
               </div>
 
-              <div className="mt-12">
+              <div className="mt-3">
                 <Countdown />
               </div>
 
@@ -317,7 +317,7 @@ function Index() {
       </section>
 
       {/* MODULES */}
-      <section className="mx-auto max-w-6xl px-4 py-4" id="pwogram">
+      <section className="mx-auto max-w-6xl px-4 py-2" id="pwogram">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-2xl font-bold uppercase sm:text-4xl">
             Pwogram <span className="text-gradient-neon">fòmasyon an</span>
