@@ -6,8 +6,7 @@ const globalObj = globalThis as any
 function buildFallbackH3(): any {
   const hdrs = new Headers()
   try {
-    const g = globalThis as any
-    const ssrReq = g.__SSR_REQUEST__
+    const ssrReq = globalObj.__SSR_REQUEST__
     if (ssrReq && ssrReq.headers && typeof ssrReq.headers === 'object') {
       for (const [k, v] of Object.entries(ssrReq.headers as Record<string, string>)) {
         if (typeof k === 'string' && typeof v === 'string') {
@@ -48,7 +47,7 @@ try {
     return store
   }
 } catch {
-  // AsyncLocalStorage patching not supported in this runtime
+  // Runtime sin soporte de AsyncLocalStorage
 }
 
 if (typeof window === 'undefined') {
@@ -58,7 +57,7 @@ if (typeof window === 'undefined') {
       try {
         ;(existingStorage as any).enterWith(getFallbackStore())
       } catch {
-        // older Node without enterWith support
+        // Fallback para Node antiguo
       }
     }
   } catch {
