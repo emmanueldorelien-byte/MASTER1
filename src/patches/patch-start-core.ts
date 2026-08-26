@@ -3,36 +3,36 @@
 // fallback in case the bundled library runs in an environment where the
 // H3 event or `res` is missing.
 
-async function applyPatch() {
-  try {
-    const mod = await import('@tanstack/start-server-core/src/request-response');
-    if (!mod) return;
-    const original = (mod as any).getResponse;
-    if (typeof original !== 'function') return;
+// Only run on server (Node). Guard against bundlers by building the
+// import path dynamically so Vite's static resolver doesn't try to
+// analyze or bundle the deep import.
+if (typeof window === 'undefined') {
+  ;(async function applyPatch() {
+    try {
+      const pkg = '@tanstack/start-server-core'
+      const modPath = pkg + '/src/request-response'
+      const mod = await import(modPath as any)
+      if (!mod) return
+      const original = (mod as any).getResponse
+      if (typeof original !== 'function') return
 
-    (mod as any).getResponse = function patchedGetResponse(...args: any[]) {
-      try {
-        return original.apply(this, args);
-      } catch (err) {
-        // Defensive fallback: return minimal `res`-like object expected
-        // by callers that read `headers`/`status`/`statusText`.
-        return {
-          headers: new Headers(),
-          status: 500,
-          statusText: '',
-        } as any;
+      ;(mod as any).getResponse = function patchedGetResponse(...args: any[]) {
+        try {
+          return original.apply(this, args)
+        } catch (err) {
+          return {
+            headers: new Headers(),
+            status: 500,
+            statusText: '',
+          } as any
+        }
       }
-    };
-  } catch (e) {
-    // Non-fatal: if patching fails, we log and continue. The node_modules
-    // edit remains a last-resort local fix until upstream accepts a PR.
-    // Avoid throwing during startup.
-    // eslint-disable-next-line no-console
-    console.warn('[patch-start-core] failed to apply patch', e);
-  }
+    } catch (e) {
+      // Non-fatal: log and continue. Avoid throwing during startup.
+      // eslint-disable-next-line no-console
+      console.warn('[patch-start-core] failed to apply patch', e)
+    }
+  })()
 }
 
-// Fire-and-forget; ensure we don't block startup.
-void applyPatch();
-
-export {};
+export {}
