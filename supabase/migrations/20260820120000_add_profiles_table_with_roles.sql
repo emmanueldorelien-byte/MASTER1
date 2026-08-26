@@ -16,7 +16,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 GRANT ALL ON public.profiles TO service_role;
 GRANT SELECT, INSERT, UPDATE ON public.profiles TO authenticated;
-GRANT USAGE, SELECT ON SEQUENCE public.profiles_id_seq TO authenticated;
+-- Sequence `public.profiles_id_seq` does not exist (profiles uses UUID PK).
+-- The following GRANT was removed to avoid errors when running this migration
+-- in databases that do not have a corresponding sequence.
+-- GRANT USAGE, SELECT ON SEQUENCE public.profiles_id_seq TO authenticated;
 
 DO $$
 BEGIN
