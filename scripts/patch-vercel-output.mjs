@@ -22,7 +22,6 @@ if (!existsSync(FUNCTIONS_DIR)) {
 }
 
 // Buscar el render.func: Nitro lo llama "render.func", "index.func" o a veces otra cosa.
-// Buscamos el primer .func que tenga un index.mjs / index.cjs dentro.
 function findRenderFunc() {
   if (!existsSync(FUNCTIONS_DIR)) return null;
   const entries = readdirSync(FUNCTIONS_DIR, { withFileTypes: true });
@@ -53,13 +52,8 @@ writeFileSync(
   ) + "\n",
 );
 
-// 2. Sustituir el entry del render.func con NUESTRO index.cjs (dispatcher + debug HTML)
-// Nota: Nitro normalmente genera un index.mjs/server.mjs. Tenemos que ajustar la ruta
-// de import("./server/server.js") del dispatcher para que apunte al fichero real
-// que Nitro ha generado dentro del render.func.
-// Primero detectamos el entry Nitro real dentro del render.func.
+// 2. Detectar el entry Nitro real dentro del render.func
 function detectNitroServerEntry(funcDir) {
-  // Busca server/server.mjs, server/server.js, index.mjs, handler.mjs, etc.
   const candidates = [
     ["server", "server.mjs"],
     ["server", "server.js"],
@@ -74,7 +68,6 @@ function detectNitroServerEntry(funcDir) {
     const abs = path.join(funcDir, ...rel);
     if (existsSync(abs)) return "./" + rel.join("/");
   }
-  // fallback: lista el dir y muestra el primero .mjs / .js top-level
   if (existsSync(funcDir)) {
     const top = readdirSync(funcDir, { withFileTypes: true });
     for (const e of top) {
@@ -87,7 +80,7 @@ function detectNitroServerEntry(funcDir) {
 const NITRO_ENTRY = detectNitroServerEntry(RENDER_FUNC);
 console.log("[patch-vercel-output] Nitro server entry inside func: " + NITRO_ENTRY);
 
-// Construye nuestro index.cjs con el NITRO_ENTRY correcto (template string dinámico)
+// Construye nuestro index.cjs limpio (sin parches corruptos de AsyncLocalStorage o CSRF)
 const indexCjs = buildIndexCjs(NITRO_ENTRY);
 writeFileSync(path.join(RENDER_FUNC, "index.cjs"), indexCjs);
 
@@ -102,50 +95,6 @@ console.log("  - Nitro server entry: " + NITRO_ENTRY);
 function buildIndexCjs(nitroEntryRel) {
   return `"use strict";
 const { Readable } = require("node:stream");
-
-(function polyfillAsyncLocalStorage() {
-  if (typeof globalThis !== "undefined" && globalThis.AsyncLocalStorage) return;
-  var STORE_KEY = "__tanstack_als_store__";
-  function defaultStore() { return { startOptions: {} }; }
-  function BPAsyncLocalStorage() { this[STORE_KEY] = defaultStore(); }
-  BPAsyncLocalStorage.prototype.getStore = function () {
-    var s = this[STORE_KEY];
-    if (!s || typeof s !== "object" || !("startOptions" in s)) {
-      s = defaultStore(); this[STORE_KEY] = s;
-    }
-    return s;
-  };
-  BPAsyncLocalStorage.prototype.run = function (store, cb) {
-    var prev = this[STORE_KEY]; this[STORE_KEY] = store || defaultStore();
-    var args = Array.prototype.slice.call(arguments, 2); var res;
-    try { res = cb.apply(null, args); }
-    finally { if (!res || typeof res.then !== "function") { this[STORE_KEY] = prev; } }
-    if (res && typeof res.then === "function") {
-      var self = this;
-      return res.then(function(v){ self[STORE_KEY] = prev; return v; }, function(e){ self[STORE_KEY] = prev; throw e; });
-    }
-    return res;
-  };
-  BPAsyncLocalStorage.prototype.exit = function (cb) {
-    var prev = this[STORE_KEY]; this[STORE_KEY] = defaultStore();
-    var args = Array.prototype.slice.call(arguments, 1); var res;
-    try { res = cb.apply(null, args); }
-    finally { if (!res || typeof res.then !== "function") { this[STORE_KEY] = prev; } }
-    if (res && typeof res.then === "function") {
-      var self = this;
-      return res.then(function(v){ self[STORE_KEY] = prev; return v; }, function(e){ self[STORE_KEY] = prev; throw e; });
-    }
-    return res;
-  };
-  BPAsyncLocalStorage.prototype.enterWith = function (s) { this[STORE_KEY] = s || defaultStore(); };
-  BPAsyncLocalStorage.prototype.disable = function () { this[STORE_KEY] = defaultStore(); };
-  try { Object.defineProperty(globalThis, "AsyncLocalStorage", { value: BPAsyncLocalStorage, writable: true, configurable: true }); }
-  catch (e) { globalThis.AsyncLocalStorage = BPAsyncLocalStorage; }
-  if (!globalThis.__tanstack_start_storage_singleton__) {
-    globalThis.__tanstack_start_storage_singleton__ = new BPAsyncLocalStorage();
-  }
-})();
-
 var nitroEntryRelSafe = ${JSON.stringify(nitroEntryRel)};
 
 function envReport() {
@@ -174,8 +123,6 @@ function loadNitro() {
     })
     .then(function (m) {
       var app = m && (m.default || m);
-      // Nitro preset=vercel exporta a veces un objeto con handler() y otras veces fetch()
-      // Soportamos ambos.
       if (app && typeof app.fetch === "function") {
         console.error("[vercel-render] nitro loaded OK, using app.fetch()");
         return app;
@@ -184,8 +131,6 @@ function loadNitro() {
         console.error("[vercel-render] nitro loaded OK, wrapping app.handler() as fetch()");
         return {
           fetch: function (req, env, ctx) {
-            // Si envuelve (event, context) hay que adaptar, pero el wrapper
-            // our dispatcher pasa siempre (Request, process.env, ctx).
             return Promise.resolve(app.handler(req, env, ctx));
           }
         };
@@ -287,7 +232,6 @@ function renderToPromise(request) {
   });
 }
 
-// Firma 1: estilo http.Server (req, res)
 function handlerHttp(req, res) {
   Promise.resolve()
     .then(function () {
@@ -310,7 +254,6 @@ function handlerHttp(req, res) {
     });
 }
 
-// Firma 2: estilo Vercel helpers/event (event.path + event.headers + event.body)
 function handlerEvent(event, context) {
   if (!event || typeof event !== "object") {
     return { statusCode: 500, headers: { "content-type": "text/plain; charset=utf-8" },
@@ -365,11 +308,7 @@ function handlerEvent(event, context) {
     });
 }
 
-// Auto-detecta la firma y despacha
 function dispatcher(a, b) {
-  console.error("[vercel-render:dispatcher] called, args types: typeof a=" + typeof a + ", typeof b=" + typeof b +
-    ", b.writeHead?=" + (b && typeof b.writeHead === "function") +
-    ", a.on?=" + (a && typeof a.on === "function"));
   if (b && typeof b.writeHead === "function" && typeof b.end === "function") {
     return handlerHttp(a, b);
   }
