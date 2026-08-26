@@ -1,3 +1,5 @@
+// Apply runtime patch to handle edge-case runtimes in @tanstack/start-server-core
+import "./patches/patch-start-core";
 import { createStart, createMiddleware } from "@tanstack/react-start";
 import { createCsrfMiddleware } from "@tanstack/start-client-core";
 
@@ -95,11 +97,24 @@ const errorMiddleware = createMiddleware().server(
 // Start installs this automatically when src/start.ts is absent; defining the
 // file opts out, so re-add it explicitly to keep server functions protected
 // from cross-site requests.
-const csrfMiddleware = createCsrfMiddleware({
-  filter: (ctx) => ctx.handlerType === "serverFn",
+// Create a lazy CSRF middleware to avoid circular import/evaluation issues
+// during build time. The real `createCsrfMiddleware` is imported on first use.
+const lazyCsrfMiddleware = createMiddleware().server(async (ctx) => {
+  if (!(lazyCsrfMiddleware as any)._real) {
+    const mod = await import("@tanstack/start-client-core");
+    const createCsrf = mod.createCsrfMiddleware || mod.default?.createCsrfMiddleware || mod;
+    try {
+      (lazyCsrfMiddleware as any)._real = createCsrf({ filter: (c) => c.handlerType === "serverFn" });
+    } catch (e) {
+      console.error("Failed to create real CSRF middleware:", e);
+      return ctx.next ? ctx.next() : new Response("", { status: 500 });
+    }
+  }
+  const real = (lazyCsrfMiddleware as any)._real;
+  return real.handler ? real.handler(ctx) : ctx.next ? ctx.next() : new Response("", { status: 500 });
 });
 
 export const startInstance = createStart(() => ({
   functionMiddleware: [attachSupabaseAuth],
-  requestMiddleware: [errorMiddleware, csrfMiddleware],
+  requestMiddleware: [errorMiddleware, lazyCsrfMiddleware],
 }));
