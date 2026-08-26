@@ -92,7 +92,6 @@ function debugErrorHtml(error: unknown, body: string): string {
 <body>
   <div class="row">
     <span class="tag">500 SSR ERROR</span>
-    <span class="tag ok">debug mode — quitar antes de producción</span>
   </div>
   <h1>Error message</h1>
   <pre>${esc(msg)}</pre>

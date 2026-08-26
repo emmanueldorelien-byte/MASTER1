@@ -4,6 +4,14 @@ import { createStart, createMiddleware } from "@tanstack/react-start";
 
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
+const safeCreateMiddleware = () => {
+  if (typeof createMiddleware !== "function") {
+    console.warn("[tanstack-start] createMiddleware is unavailable; request middleware will be disabled.");
+    return null;
+  }
+  return createMiddleware();
+};
+
 function esc(s: unknown): string {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
@@ -41,7 +49,6 @@ function debugMiddlewareErrorHtml(error: unknown, handlerType: string): string {
 <body>
   <div class="row">
     <span class="tag">500 MIDDLEWARE ERROR</span>
-    <span class="tag ok">debug mode — quitar antes de producción</span>
     <span class="tag" style="background:#e0e7ff;color:#3730a3">handler: ${esc(handlerType)}</span>
   </div>
   <h1>Error message</h1>
@@ -54,7 +61,7 @@ function debugMiddlewareErrorHtml(error: unknown, handlerType: string): string {
 </html>`;
 }
 
-const ssrRequestBridge = createMiddleware().server(
+const ssrRequestBridge = safeCreateMiddleware()?.server(
   async ({ request, next }) => {
     try {
       const headerObj: Record<string, string> = {};
@@ -83,7 +90,7 @@ const ssrRequestBridge = createMiddleware().server(
   },
 );
 
-const errorMiddleware = createMiddleware().server(
+const errorMiddleware = safeCreateMiddleware()?.server(
   async ({ request, handlerType, next }) => {
     try {
       return await next();
@@ -124,5 +131,5 @@ const errorMiddleware = createMiddleware().server(
 
 export const startInstance = createStart(() => ({
   functionMiddleware: [attachSupabaseAuth],
-  requestMiddleware: [ssrRequestBridge, errorMiddleware],
+  requestMiddleware: [ssrRequestBridge, errorMiddleware].filter(Boolean) as any,
 }));
