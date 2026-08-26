@@ -317,7 +317,7 @@ function Index() {
       </section>
 
       {/* MODULES */}
-      <section className="mx-auto max-w-6xl px-4 py-5" id="pwogram">
+      <section className="mx-auto max-w-6xl px-4 py-4" id="pwogram">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-display text-2xl font-bold uppercase sm:text-4xl">
             Pwogram <span className="text-gradient-neon">fòmasyon an</span>
