@@ -11,7 +11,8 @@ if (typeof window === 'undefined') {
     try {
       const pkg = '@tanstack/start-server-core'
       const modPath = pkg + '/src/request-response'
-      const mod = await import(modPath as any)
+      // Tell Vite to ignore static analysis for this dynamic runtime-only import
+      const mod = await import(/* @vite-ignore */ modPath as any)
       if (!mod) return
       const original = (mod as any).getResponse
       if (typeof original !== 'function') return
