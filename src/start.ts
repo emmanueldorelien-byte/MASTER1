@@ -1,15 +1,17 @@
 // Apply runtime patch to handle edge-case runtimes in @tanstack/start-server-core
 import "./patches/patch-start-core";
-import { createStart, createMiddleware } from "@tanstack/react-start";
+import { createStart } from "@tanstack/react-start";
 
+import { createSafeMiddleware } from "@/lib/safe-middleware";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 const safeCreateMiddleware = () => {
-  if (typeof createMiddleware !== "function") {
-    console.warn("[tanstack-start] createMiddleware is unavailable; request middleware will be disabled.");
+  try {
+    return createSafeMiddleware();
+  } catch (error) {
+    console.warn("[tanstack-start] createMiddleware is unavailable; request middleware will be disabled.", error);
     return null;
   }
-  return createMiddleware();
 };
 
 function esc(s: unknown): string {
