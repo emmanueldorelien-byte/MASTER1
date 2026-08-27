@@ -1,4 +1,32 @@
 // Apply runtime patch to handle edge-case runtimes in @tanstack/start-server-core
+import { config } from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const dotenvResult = config({ path: path.resolve(__dirname, "..", ".env") });
+
+// Polyfill global `process` + merge dotenv + import.meta.env so server functions
+// always see env vars even when Vite SSR runtime does not define `process`.
+(function ensureGlobalProcess() {
+  const g = globalThis as any;
+  const mergedEnv: Record<string, string> = { ...(dotenvResult?.parsed ?? {}) };
+  try {
+    if (typeof import.meta !== "undefined" && (import.meta as any).env) {
+      Object.assign(mergedEnv, (import.meta as any).env);
+    }
+  } catch {
+    /* ignore */
+  }
+  if (typeof process !== "undefined" && process.env) {
+    Object.assign(mergedEnv, process.env);
+  }
+  if (!g.process) g.process = {};
+  if (!g.process.env) g.process.env = {};
+  Object.assign(g.process.env, mergedEnv);
+  (g as any).import_meta_env = mergedEnv;
+})();
+
 import "./patches/patch-start-core";
 import { createStart } from "@tanstack/react-start";
 
@@ -64,11 +92,11 @@ function debugMiddlewareErrorHtml(error: unknown, handlerType: string): string {
 }
 
 const ssrRequestBridge = safeCreateMiddleware()?.server(
-  async ({ request, next }) => {
+  async ({ request, next }: { request: any; next: any }) => {
     try {
       const headerObj: Record<string, string> = {};
       if (request?.headers?.forEach) {
-        request.headers.forEach((v, k) => {
+        request.headers.forEach((v: string, k: string) => {
           headerObj[k.toLowerCase()] = v;
         });
       } else if (request?.headers) {
@@ -93,7 +121,7 @@ const ssrRequestBridge = safeCreateMiddleware()?.server(
 );
 
 const errorMiddleware = safeCreateMiddleware()?.server(
-  async ({ request, handlerType, next }) => {
+  async ({ request, handlerType, next }: { request: any; handlerType: any; next: any }) => {
     try {
       return await next();
     } catch (error) {
@@ -132,6 +160,6 @@ const errorMiddleware = safeCreateMiddleware()?.server(
 );
 
 export const startInstance = createStart(() => ({
-  functionMiddleware: [attachSupabaseAuth],
+  functionMiddleware: [attachSupabaseAuth as any],
   requestMiddleware: [ssrRequestBridge, errorMiddleware].filter(Boolean) as any,
 }));

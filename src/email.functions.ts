@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { buildConfirmationEmail, type ConfirmationEmailProps } from "@/lib/email-templates";
 import type { CertLang } from "@/lib/certificate-copy";
+import { resolveEnv } from "@/lib/env";
 
 const confirmSchema = z.object({
   toEmail: z.string().trim().email(),
@@ -15,12 +16,7 @@ const confirmSchema = z.object({
 });
 
 function env(name: string): string | undefined {
-  return (
-    (process.env[name] as string | undefined) ??
-    (typeof import.meta !== "undefined" && (import.meta.env as Record<string, unknown>)[name]
-      ? ((import.meta.env as Record<string, unknown>)[name] as string)
-      : undefined)
-  );
+  return resolveEnv(name) ?? resolveEnv(`VITE_${name}`);
 }
 
 type AnyTransporter = {
@@ -69,7 +65,7 @@ async function getTransporter(): Promise<AnyTransporter | null> {
     port,
     secure,
     auth: { user, pass },
-  }) as AnyTransporter;
+  }) as unknown as AnyTransporter;
   return _transporter;
 }
 

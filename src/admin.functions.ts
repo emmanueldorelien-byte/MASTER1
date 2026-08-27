@@ -2,16 +2,16 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Tables } from "@/integrations/supabase/types";
 import { getRequest } from "@tanstack/react-start/server";
+import { resolveEnv } from "@/lib/env";
 
 async function requireAdmin(): Promise<{ user_id: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { createClient } = await import("@supabase/supabase-js");
-  const SUPABASE_URL =
-    (process.env["SUPABASE_URL"] as string | undefined) ??
-    (globalThis as any).import_meta_env?.["VITE_SUPABASE_URL"];
-  const SUPABASE_PUBLISHABLE_KEY =
-    (process.env["SUPABASE_PUBLISHABLE_KEY"] as string | undefined) ??
-    (globalThis as any).import_meta_env?.["VITE_SUPABASE_PUBLISHABLE_KEY"];
+  const SUPABASE_URL = resolveEnv("SUPABASE_URL", "VITE_SUPABASE_URL");
+  const SUPABASE_PUBLISHABLE_KEY = resolveEnv(
+    "SUPABASE_PUBLISHABLE_KEY",
+    "VITE_SUPABASE_PUBLISHABLE_KEY",
+  );
 
   let userId: string | null = null;
   let bearerToken: string | null = null;
@@ -353,14 +353,27 @@ export const getLiveData = createServerFn({ method: "GET" }).handler(
     const debug: string[] = [];
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const SUPABASE_URL = process.env["SUPABASE_URL"];
-      const SUPABASE_SERVICE_ROLE_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+      const SUPABASE_URL = resolveEnv("SUPABASE_URL", "VITE_SUPABASE_URL");
+      const SUPABASE_SERVICE_ROLE_KEY = resolveEnv(
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "VITE_SUPABASE_SERVICE_ROLE_KEY",
+      );
+      const SUPABASE_PUBLISHABLE_KEY = resolveEnv(
+        "SUPABASE_PUBLISHABLE_KEY",
+        "VITE_SUPABASE_PUBLISHABLE_KEY",
+      );
       if (!SUPABASE_URL) debug.push("[ENV] SUPABASE_URL is NOT defined in process.env");
       if (!SUPABASE_SERVICE_ROLE_KEY)
         debug.push("[ENV] SUPABASE_SERVICE_ROLE_KEY is NOT defined in process.env");
-      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
+      if (!SUPABASE_URL && resolveEnv("VITE_SUPABASE_URL"))
+        debug.push("[ENV] SUPABASE_URL resolved via VITE_SUPABASE_URL fallback");
+      if (!SUPABASE_SERVICE_ROLE_KEY && SUPABASE_PUBLISHABLE_KEY)
+        debug.push("[ENV] SUPABASE_SERVICE_ROLE_KEY missing — will use PUBLISHABLE fallback (RLS enforced)");
+      if (SUPABASE_URL)
         debug.push(
-          `[ENV] SUPABASE_URL=${SUPABASE_URL.slice(0, 20)}... / service_role key prefix: ${SUPABASE_SERVICE_ROLE_KEY.slice(0, 10)}...`,
+          `[ENV] SUPABASE_URL=${SUPABASE_URL.slice(0, 20)}... / key prefix: ${(
+            SUPABASE_SERVICE_ROLE_KEY || SUPABASE_PUBLISHABLE_KEY || ""
+          ).slice(0, 10)}...`,
         );
 
       const { data: settings, error: settingsError } = await supabaseAdmin

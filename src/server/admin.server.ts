@@ -7,6 +7,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Json } from "@/integrations/supabase/types";
+import { resolveEnv } from "@/lib/env";
 
 // ============================================================
 // SEGURIDAD SERVER-SIDE (idéntica a admin.functions.ts)
@@ -15,15 +16,15 @@ import type { Json } from "@/integrations/supabase/types";
 //   1. Header "Authorization: Bearer <token>"  (llamadas cliente → serverFn)
 //   2. Cookies del request via getRequest()    (SSR y server-side)
 // ============================================================
+
 async function requireAdmin(): Promise<{ user_id: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { createClient } = await import("@supabase/supabase-js");
-  const SUPABASE_URL =
-    (process.env["SUPABASE_URL"] as string | undefined) ??
-    (globalThis as any).import_meta_env?.["VITE_SUPABASE_URL"];
-  const SUPABASE_PUBLISHABLE_KEY =
-    (process.env["SUPABASE_PUBLISHABLE_KEY"] as string | undefined) ??
-    (globalThis as any).import_meta_env?.["VITE_SUPABASE_PUBLISHABLE_KEY"];
+  const SUPABASE_URL = resolveEnv("SUPABASE_URL", "VITE_SUPABASE_URL");
+  const SUPABASE_PUBLISHABLE_KEY = resolveEnv(
+    "SUPABASE_PUBLISHABLE_KEY",
+    "VITE_SUPABASE_PUBLISHABLE_KEY",
+  );
 
   let userId: string | null = null;
   let bearerToken: string | null = null;
