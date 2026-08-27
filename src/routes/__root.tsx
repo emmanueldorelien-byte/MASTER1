@@ -117,57 +117,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="ht" className="dark">
-      <head>
-        <HeadContent />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){
-  if (typeof window === 'undefined') return;
-  window.__TSS_START_OPTIONS__ = window.__TSS_START_OPTIONS__ || {};
-  var STORE_KEY = '__tanstack_als_store__';
-  function defaultStore() {
-    return { startOptions: window.__TSS_START_OPTIONS__ || {} };
-  }
-  function BPAsyncLocalStorage() { this[STORE_KEY] = defaultStore(); }
-  BPAsyncLocalStorage.prototype.getStore = function () {
-    var s = this[STORE_KEY];
-    if (!s || typeof s !== 'object' || !('startOptions' in s)) { s = defaultStore(); this[STORE_KEY] = s; }
-    return s;
-  };
-  BPAsyncLocalStorage.prototype.run = function (store, cb) {
-    var prev = this[STORE_KEY]; this[STORE_KEY] = store || defaultStore();
-    var args = Array.prototype.slice.call(arguments, 2); var res;
-    try { res = cb.apply(null, args); }
-    finally { if (!res || typeof res.then !== 'function') { this[STORE_KEY] = prev; } }
-    if (res && typeof res.then === 'function') { var self = this; return res.then(function(v){ self[STORE_KEY] = prev; return v; }, function(e){ self[STORE_KEY] = prev; throw e; }); }
-    return res;
-  };
-  BPAsyncLocalStorage.prototype.exit = function (cb) {
-    var prev = this[STORE_KEY]; this[STORE_KEY] = defaultStore();
-    var args = Array.prototype.slice.call(arguments, 1); var res;
-    try { res = cb.apply(null, args); }
-    finally { if (!res || typeof res.then !== 'function') { this[STORE_KEY] = prev; } }
-    if (res && typeof res.then === 'function') { var self = this; return res.then(function(v){ self[STORE_KEY] = prev; return v; }, function(e){ self[STORE_KEY] = prev; throw e; }); }
-    return res;
-  };
-  BPAsyncLocalStorage.prototype.enterWith = function (s) { this[STORE_KEY] = s || defaultStore(); };
-  BPAsyncLocalStorage.prototype.disable = function () { this[STORE_KEY] = defaultStore(); };
-
-  try { Object.defineProperty(globalThis, 'AsyncLocalStorage', { value: BPAsyncLocalStorage, writable: true, configurable: true }); } catch (e) { globalThis.AsyncLocalStorage = BPAsyncLocalStorage; }
-  try { Object.defineProperty(window, 'AsyncLocalStorage', { value: BPAsyncLocalStorage, writable: true, configurable: true }); } catch (e) { window.AsyncLocalStorage = BPAsyncLocalStorage; }
-
-  // Singleton store used by @tanstack/start-storage-context
-  window.__tanstack_start_storage_singleton__ = new BPAsyncLocalStorage();
-})();`,
-          }}
-        />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
+    <>
+      <HeadContent />
+      {children}
+      <Scripts />
+    </>
   );
 }
 

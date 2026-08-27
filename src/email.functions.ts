@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import nodemailer from "nodemailer";
 import { buildConfirmationEmail, type ConfirmationEmailProps } from "@/lib/email-templates";
 import type { CertLang } from "@/lib/certificate-copy";
 
@@ -24,11 +23,31 @@ function env(name: string): string | undefined {
   );
 }
 
-type AnyTransporter = ReturnType<typeof nodemailer.createTransport>;
-let _transporter: AnyTransporter | null = null;
+type AnyTransporter = {
+  sendMail: (options: Record<string, unknown>) => Promise<Record<string, unknown>>;
+};
 
-function getTransporter(): AnyTransporter | null {
+let _transporter: AnyTransporter | null = null;
+let _nodemailerPromise: Promise<typeof import("nodemailer") | null> | null = null;
+
+async function getNodemailerModule(): Promise<typeof import("nodemailer") | null> {
+  if (typeof window !== "undefined") return null;
+  if (!_nodemailerPromise) {
+    _nodemailerPromise = import("nodemailer").catch(() => null);
+  }
+  return _nodemailerPromise;
+}
+
+async function getTransporter(): Promise<AnyTransporter | null> {
   if (_transporter !== null) return _transporter;
+  if (typeof window !== "undefined") return null;
+
+  const nodemailerModule = await getNodemailerModule();
+  if (!nodemailerModule) {
+    _transporter = null;
+    return null;
+  }
+
   const host = env("SMTP_HOST");
   const user = env("SMTP_USER");
   const pass = env("SMTP_PASS");
@@ -36,20 +55,21 @@ function getTransporter(): AnyTransporter | null {
   const secureStr = env("SMTP_SECURE");
 
   if (!host || !user || !pass) {
-    _transporter = null as unknown as AnyTransporter;
-    return _transporter;
+    _transporter = null;
+    return null;
   }
   const port = portStr ? parseInt(portStr, 10) : 587;
   const secure =
     typeof secureStr === "string"
       ? secureStr === "1" || secureStr.toLowerCase() === "true"
       : port === 465;
-  _transporter = nodemailer.createTransport({
+  const nodemailerLib = (nodemailerModule as typeof import("nodemailer") & { default?: typeof import("nodemailer") }).default ?? nodemailerModule;
+  _transporter = nodemailerLib.createTransport({
     host,
     port,
     secure,
     auth: { user, pass },
-  });
+  }) as AnyTransporter;
   return _transporter;
 }
 
@@ -61,7 +81,7 @@ export type SendConfirmationResult =
 export const sendConfirmationEmail = createServerFn({ method: "POST" })
   .validator(confirmSchema)
   .handler(async ({ data }): Promise<SendConfirmationResult> => {
-    const transporter = getTransporter();
+    const transporter = await getTransporter();
     if (!transporter) {
       console.warn("[email] SMTP not configured. Skipping confirmation email to:", data.toEmail);
       return { sent: false, skipped: true, reason: "smtp_not_configured" };
