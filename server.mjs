@@ -14,7 +14,7 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });
 });
 
-app.get("*", (_req, res) => {
+app.get(/^(?!\/api|\/health).*/, (_req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
